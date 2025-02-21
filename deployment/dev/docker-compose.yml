@@ -55,7 +55,7 @@ services:
       args:
         NODE_PORT: 3000
         SERVICE_NAME: api-gateway
-        ENV_PATH: ./scripts/dev/.env
+        ENV_PATH: ./deployment/dev/.env
     environment:
       - PORT=3000
     ports:
@@ -82,7 +82,7 @@ services:
       args:
         NODE_PORT: 4001
         SERVICE_NAME: services/invoice-service
-        ENV_PATH: ./scripts/dev/.env
+        ENV_PATH: ./deployment/dev/.env
     environment:
       - PORT=4001
     ports:
@@ -105,7 +105,7 @@ services:
       args:
         NODE_PORT: 4002
         SERVICE_NAME: services/order-service
-        ENV_PATH: ./scripts/dev/.env
+        ENV_PATH: ./deployment/dev/.env
     environment:
       - PORT=4002
     ports:
@@ -128,7 +128,7 @@ services:
       args:
         NODE_PORT: 4003
         SERVICE_NAME: services/role-service
-        ENV_PATH: ./scripts/dev/.env
+        ENV_PATH: ./deployment/dev/.env
     environment:
       - PORT=4003
     ports:
@@ -151,7 +151,7 @@ services:
       args:
         NODE_PORT: 4004
         SERVICE_NAME: services/user-service
-        ENV_PATH: ./scripts/dev/.env
+        ENV_PATH: ./deployment/dev/.env
     environment:
       - PORT=4004
     ports:
