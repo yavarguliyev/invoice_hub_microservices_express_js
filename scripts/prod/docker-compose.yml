@@ -1,0 +1,334 @@
+version: "3.8"
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway
+      - invoice-service-1
+      - invoice-service-2
+      - order-service-1
+      - order-service-2
+      - role-service-1
+      - role-service-2
+      - user-service-1
+    command: >
+      sh -c "until curl --silent --head --fail http://api-gateway:3000; do echo 'Waiting for api-gateway...'; sleep 5; done &&
+            until curl --silent --head --fail http://invoice-service-1:4001; do echo 'Waiting for invoice-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://order-service-1:4002; do echo 'Waiting for order-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://role-service-1:4003; do echo 'Waiting for role-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://user-service-1:4004; do echo 'Waiting for user-service-1...'; sleep 5; done &&
+            nginx -g 'daemon off;'"
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    ports:
+      - "2181:2181"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - ./root/zookeeper-data:/data
+      - ./root/zookeeper-logs:/datalog
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
+
+  kafka:
+    image: bitnami/kafka:latest
+    ports:
+      - "9092:9092"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./root/kafka-data:/var/lib/kafka
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
+    
+  api-gateway:
+    container_name: api-gateway
+    image: invoice_hub_microservices_api-gateway
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 3000
+        SERVICE_NAME: api-gateway
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://api-gateway:3000"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - ../../packages:/app/packages
+      - ../../api-gateway:/app/api-gateway
+    depends_on:
+      - kafka
+      - invoice-service-1
+      - order-service-1
+      - role-service-1
+      - user-service-1
+    command: sh -c "yarn start:prod"
+
+  invoice-service-1:
+    container_name: invoice-service-1
+    image: invoice_hub_microservices_invoice-service_1
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4001
+        SERVICE_NAME: services/invoice-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4001
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4001:4001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/invoice-service:/app/services/invoice-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  invoice-service-2:
+    container_name: invoice-service-2
+    image: invoice_hub_microservices_invoice-service_2
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4001
+        SERVICE_NAME: services/invoice-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4001
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4006:4001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/invoice-service:/app/services/invoice-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  order-service-1:
+    container_name: order-service-1
+    image: invoice_hub_microservices_order-service_1
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4002
+        SERVICE_NAME: services/order-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4002
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4002:4002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/order-service:/app/services/order-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  order-service-2:
+    container_name: order-service-2
+    image: invoice_hub_microservices_order-service_2
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4002
+        SERVICE_NAME: services/order-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4002
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4007:4002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/order-service:/app/services/order-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  role-service-1:
+    container_name: role-service-1
+    image: invoice_hub_microservices_role-service_1
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4003
+        SERVICE_NAME: services/role-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4003
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4003:4003"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4003"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/role-service:/app/services/role-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  role-service-2:
+    container_name: role-service-2
+    image: invoice_hub_microservices_role-service_2
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4003
+        SERVICE_NAME: services/role-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4003
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4008:4003"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://role:4003"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/role-service:/app/services/role-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  user-service-1:
+    container_name: user-service-1
+    image: invoice_hub_microservices_user-service_1
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4004
+        SERVICE_NAME: services/user-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4004
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4004:4004"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/user-service:/app/services/user-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+  user-service-2:
+    container_name: user-service-2
+    image: invoice_hub_microservices_user-service_2
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4004
+        SERVICE_NAME: services/user-service
+        ENV_PATH: ./scripts/prod/.env
+    environment:
+      - PORT=4004
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    restart: always
+    ports:
+      - "4009:4004"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004"]
+      interval: 10s
+      retries: 3
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/user-service:/app/services/user-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start:prod"
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:

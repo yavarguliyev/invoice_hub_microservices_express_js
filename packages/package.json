@@ -1,0 +1,40 @@
+{
+  "name": "@invoice-hub/common-packages",
+  "version": "1.10.0",
+  "description": "Packages",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "author": "Yavar Guliyev",
+  "license": "MIT",
+  "scripts": {
+    "clean:dist": "rimraf dist/*",
+    "lint": "esw --watch --ext .ts src",
+    "build": "yarn clean:dist && tsc",
+    "build:dev": "yarn build"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "kafkajs": "^2.2.4",
+    "license-checker": "^25.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rimraf": "^6.0.1",
+    "typedi": "^0.10.0",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^8.26.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.4.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-watch": "^8.0.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3"
+  }
+}

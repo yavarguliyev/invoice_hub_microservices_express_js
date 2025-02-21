@@ -1,0 +1,175 @@
+version: "3"
+
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: bitnami/zookeeper:latest
+    ports:
+      - "2181:2181"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - ./root/zookeeper-data:/data
+      - ./root/zookeeper-logs:/datalog
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
+
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    ports:
+      - "9092:9092"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./root/kafka-data:/var/lib/kafka
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
+    
+  api-gateway:
+    container_name: api-gateway
+    image: invoice_hub_microservices_api-gateway
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 3000
+        SERVICE_NAME: api-gateway
+        ENV_PATH: ./scripts/dev/.env
+    environment:
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ../../packages:/app/packages
+      - ../../api-gateway:/app/api-gateway
+    depends_on:
+      - kafka
+      - invoice-service
+      - order-service
+      - role-service
+      - user-service
+    command: sh -c "yarn start"
+
+  invoice-service:
+    container_name: invoice-service
+    image: invoice_hub_microservices_invoice-service
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4001
+        SERVICE_NAME: services/invoice-service
+        ENV_PATH: ./scripts/dev/.env
+    environment:
+      - PORT=4001
+    ports:
+      - "4001:4001"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/invoice-service:/app/services/invoice-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start"
+  
+  order-service:
+    container_name: order-service
+    image: invoice_hub_microservices_order-service
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4002
+        SERVICE_NAME: services/order-service
+        ENV_PATH: ./scripts/dev/.env
+    environment:
+      - PORT=4002
+    ports:
+      - "4002:4002"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/order-service:/app/services/order-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start"
+
+  role-service:
+    container_name: role-service
+    image: invoice_hub_microservices_role-service
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4003
+        SERVICE_NAME: services/role-service
+        ENV_PATH: ./scripts/dev/.env
+    environment:
+      - PORT=4003
+    ports:
+      - "4003:4003"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/role-service:/app/services/role-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start"
+
+  user-service:
+    container_name: user-service
+    image: invoice_hub_microservices_user-service
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4004
+        SERVICE_NAME: services/user-service
+        ENV_PATH: ./scripts/dev/.env
+    environment:
+      - PORT=4004
+    ports:
+      - "4004:4004"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/user-service:/app/services/user-service
+    depends_on:
+      - kafka
+    command: sh -c "yarn start"
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:

@@ -1,0 +1,30 @@
+# Exclude node_modules (we'll install dependencies inside the container)
+node_modules
+**/node_modules
+
+# Exclude the build output (if you compile TypeScript or bundle assets)
+dist
+**/dist
+
+# Exclude environment files (don't want sensitive files in Docker image)
+.env
+.env.local
+.env.*.local
+
+# Exclude local development tools and files
+.vscode
+.idea
+*.log
+*.md
+
+# Exclude git files
+.git
+.gitignore
+
+# Exclude Docker-related files
+Dockerfile*
+docker-compose.yml
+
+# Exclude other unnecessary files
+*.tmp
+*.bak

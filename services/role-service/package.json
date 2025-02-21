@@ -1,0 +1,49 @@
+{
+	"name": "@invoice-hub/role-service",
+	"version": "1.0.0",
+	"description": "Role Service",
+	"main": "dist/index.js",
+	"author": "Yavar Guliyev",
+	"license": "MIT",
+	"scripts": {
+		"clean:dist": "rimraf dist/*",
+		"lint": "esw --watch --ext .ts src",
+		"build": "yarn clean:dist",
+		"build:prod": "yarn clean:dist && tsc",
+		"start:tsclint": "yarn clean:dist && concurrently --kill-others --names lint,tsc,nodemon --prefix-colors green,blue,yellow \"yarn lint\" \"tsc --preserveWatchOutput --watch\" \"sleep 8 && nodemon -r tsconfig-paths/register dist/index.js\"",
+		"start": "yarn start:tsclint",
+		"start:prod": "yarn build:prod && NODE_PATH=dist node -r tsconfig-paths/register dist/index.js"
+	},
+	"keywords": [],
+	"dependencies": {
+		"@invoice-hub/common-packages": "*",
+		"cors": "^2.8.5",
+		"dotenv": "^16.4.7",
+		"express": "^4.21.2",
+		"http-proxy-middleware": "^3.0.3",
+		"license-checker": "^25.0.1",
+		"reflect-metadata": "^0.2.2",
+		"rimraf": "^6.0.1",
+		"typedi": "^0.10.0",
+		"typeorm": "^0.3.20"
+	},
+	"devDependencies": {
+		"@types/cors": "^2.8.17",
+		"@types/express": "^5.0.0",
+		"@types/node": "^22.12.0",
+		"@typescript-eslint/eslint-plugin": "^5.42.0",
+		"@typescript-eslint/parser": "^5.42.0",
+		"concurrently": "^9.1.2",
+		"eslint": "^8.26.0",
+		"eslint-config-standard": "^17.0.0",
+		"eslint-plugin-import": "^2.26.0",
+		"eslint-plugin-n": "^15.4.0",
+		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-promise": "^6.1.1",
+		"eslint-watch": "^8.0.0",
+		"nodemon": "^3.1.9",
+		"ts-node": "^10.9.2",
+		"tsconfig-paths": "^4.2.0",
+		"typescript": "^5.7.3"
+	}
+}
