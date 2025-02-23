@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   nginx:
+    container_name: nginx
     build:
       context: ./nginx
     networks:
@@ -17,15 +18,17 @@ services:
       - role-service-1
       - role-service-2
       - user-service-1
+      - user-service-2
     command: >
       sh -c "until curl --silent --head --fail http://api-gateway:3000; do echo 'Waiting for api-gateway...'; sleep 5; done &&
-            until curl --silent --head --fail http://invoice-service-1:4001; do echo 'Waiting for invoice-service-1...'; sleep 5; done &&
-            until curl --silent --head --fail http://order-service-1:4002; do echo 'Waiting for order-service-1...'; sleep 5; done &&
-            until curl --silent --head --fail http://role-service-1:4003; do echo 'Waiting for role-service-1...'; sleep 5; done &&
-            until curl --silent --head --fail http://user-service-1:4004; do echo 'Waiting for user-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://invoice-service-1:4001/api/v1/invoices; do echo 'Waiting for invoice-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://order-service-1:4002/api/v1/orders; do echo 'Waiting for order-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://role-service-1:4003/api/v1/roles; do echo 'Waiting for role-service-1...'; sleep 5; done &&
+            until curl --silent --head --fail http://user-service-1:4004/api/v1/users; do echo 'Waiting for user-service-1...'; sleep 5; done &&
             nginx -g 'daemon off;'"
 
   zookeeper:
+    container_name: zookeeper
     image: bitnami/zookeeper:3.8
     ports:
       - "2181:2181"
@@ -43,6 +46,7 @@ services:
       timeout: 30s
 
   kafka:
+    container_name: kafka
     image: bitnami/kafka:3.6
     ports:
       - "9092:9092"
@@ -69,6 +73,7 @@ services:
       timeout: 30s
   
   kafka-ui:
+    container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
       - 9100:8080
@@ -104,7 +109,6 @@ services:
       retries: 5
     volumes:
       - ../../packages:/app/packages
-      - ../../api-gateway/src:/app/api-gateway/src:delegated
     depends_on:
       - kafka
       - invoice-service-1
@@ -131,12 +135,11 @@ services:
     ports:
       - "4001:4001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4001"]
+      test: ["CMD", "curl", "-f", "http://localhost:4001/api/v1/invoices"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/invoice-service/src:/app/services/invoice-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -159,12 +162,11 @@ services:
     ports:
       - "4006:4001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4001"]
+      test: ["CMD", "curl", "-f", "http://localhost:4001/api/v1/invoices"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/invoice-service/src:/app/services/invoice-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -187,12 +189,11 @@ services:
     ports:
       - "4002:4002"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4002"]
+      test: ["CMD", "curl", "-f", "http://localhost:4002/api/v1/orders"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/order-service/src:/app/services/order-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -215,12 +216,11 @@ services:
     ports:
       - "4007:4002"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4002"]
+      test: ["CMD", "curl", "-f", "http://localhost:4002/api/v1/orders"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/order-service/src:/app/services/order-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -243,12 +243,11 @@ services:
     ports:
       - "4003:4003"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4003"]
+      test: ["CMD", "curl", "-f", "http://localhost:4003/api/v1/roles"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/role-service/src:/app/services/role-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -271,12 +270,11 @@ services:
     ports:
       - "4008:4003"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://role:4003"]
+      test: ["CMD", "curl", "-f", "http://role:4003/api/v1/roles"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/role-service/src:/app/services/role-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -299,12 +297,11 @@ services:
     ports:
       - "4004:4004"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4004"]
+      test: ["CMD", "curl", "-f", "http://localhost:4004/api/v1/users"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/user-service/src:/app/services/user-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"
@@ -327,12 +324,11 @@ services:
     ports:
       - "4009:4004"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4004"]
+      test: ["CMD", "curl", "-f", "http://localhost:4004/api/v1/users"]
       interval: 10s
       retries: 3
     volumes:
       - ../../packages:/app/packages
-      - ../../services/user-service/src:/app/services/user-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start:prod"

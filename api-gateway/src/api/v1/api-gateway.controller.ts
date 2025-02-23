@@ -1,5 +1,6 @@
-import { Get } from 'routing-controllers';
+import { Get, JsonController } from 'routing-controllers';
 
+@JsonController()
 export class ApiGatewayController {
   @Get('/')
   async get () {

@@ -1,7 +1,8 @@
-version: "3"
+version: "3.8"
 
 services:
   zookeeper:
+    container_name: zookeeper
     image: bitnami/zookeeper:3.8
     ports:
       - "2181:2181"
@@ -13,6 +14,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
 
   kafka:
+    container_name: kafka
     image: bitnami/kafka:3.6
     volumes:
       - ./root/kafka-data:/bitnami
@@ -33,6 +35,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
   
   kafka-ui:
+    container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
       - 9100:8080
