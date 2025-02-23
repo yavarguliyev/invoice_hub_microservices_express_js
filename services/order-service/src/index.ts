@@ -1,27 +1,63 @@
+import 'reflect-metadata';
 import { config } from 'dotenv';
-import express from 'express';
-import cors from 'cors';
-// import { KafkaInfrastructure } from '@invoice-hub/common-packages';
+import http from 'http';
+import {
+  KafkaInfrastructure,
+  GracefulShutdownHelper,
+  LoggerTracerInfrastructure,
+  handleProcessSignals
+} from '@invoice-hub/common-packages';
+
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 config();
 
-const app = express();
-const port = process.env.PORT;
+const initializeInfrastructureServices = async (): Promise<void> => {
+  await KafkaInfrastructure.initialize();
+};
 
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));
-app.use(express.json());
+const initializeServer = async (): Promise<http.Server> => {
+  const expressServer = new ExpressServerInfrastructure();
+  const app = await expressServer.get();
+  const server = http.createServer(app);
 
-// KafkaInfrastructure.initialize().catch((err) => console.error('Error initializing Kafka:', err));
+  server.keepAliveTimeout = Number(process.env.KEEP_ALIVE_TIMEOUT);
+  server.headersTimeout = Number(process.env.HEADERS_TIMEOUT);
 
-// KafkaInfrastructure.subscribe('invoices-topic', (message) => {
-//   const invoiceData = JSON.parse(message);
+  return server;
+};
 
-//   console.log('Received invoice data:', invoiceData);
-//   console.log(`Processing order for invoice ${invoiceData.id}`);
-// });
+const startServer = (httpServer: http.Server, port: number): void => {
+  httpServer.listen(port, () => LoggerTracerInfrastructure.log(`Order service running on port ${port}`, 'info'));
+  httpServer.timeout = parseInt(process.env.SERVER_TIMEOUT!);
+};
 
-app.get('/', (_req, res) => {
-  res.json({ message: 'Order service' });
+const main = async (): Promise<void> => {
+  try {
+    await initializeInfrastructureServices();
+
+    const appServer = await initializeServer();
+    const port = Number(process.env.PORT);
+
+    startServer(appServer, port);
+
+    handleProcessSignals({ shutdownCallback: GracefulShutdownHelper.shutDown.bind(GracefulShutdownHelper), callbackArgs: [appServer] });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+
+    LoggerTracerInfrastructure.log(`Error during initialization: ${errorMessage}`, 'error');
+    process.exit(1);
+  }
+};
+
+process.on('uncaughtException', () => {
+  LoggerTracerInfrastructure.log('Uncaught exception, exiting process', 'error');
+  process.exit(1);
 });
 
-app.listen(port, () => console.log(`Order service running on port ${port}`));
+process.on('unhandledRejection', () => {
+  LoggerTracerInfrastructure.log('Unhandled rejection, exiting process', 'error');
+  process.exit(1);
+});
+
+main();

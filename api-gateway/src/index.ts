@@ -1,23 +1,56 @@
+import 'reflect-metadata';
 import { config } from 'dotenv';
-import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import http from 'http';
+import {
+  GracefulShutdownHelper,
+  LoggerTracerInfrastructure,
+  handleProcessSignals
+} from '@invoice-hub/common-packages';
+
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 config();
 
-const app = express();
-const port = Number(process.env.PORT);
+const initializeServer = async (): Promise<http.Server> => {
+  const expressServer = new ExpressServerInfrastructure();
+  const app = await expressServer.get();
+  const server = http.createServer(app);
 
-app.use(express.json());
+  server.keepAliveTimeout = Number(process.env.KEEP_ALIVE_TIMEOUT);
+  server.headersTimeout = Number(process.env.HEADERS_TIMEOUT);
 
-app.use('/invoices', createProxyMiddleware({ target: process.env.INVOICE_ORIGIN_ROUTE, changeOrigin: true }));
-app.use('/orders', createProxyMiddleware({ target: process.env.ORDER_ORIGIN_ROUTE, changeOrigin: true }));
-app.use('/roles', createProxyMiddleware({ target: process.env.ROLE_ORIGIN_ROUTE, changeOrigin: true }));
-app.use('/users', createProxyMiddleware({ target: process.env.USER_ORIGIN_ROUTE, changeOrigin: true }));
+  return server;
+};
 
-app.get('/', (_req, res) => {
-  res.json({ message: 'API Gateway is working' });
+const startServer = (httpServer: http.Server, port: number): void => {
+  httpServer.listen(port, () => LoggerTracerInfrastructure.log(`Api gateway running on port ${port}`, 'info'));
+  httpServer.timeout = parseInt(process.env.SERVER_TIMEOUT!);
+};
+
+const main = async (): Promise<void> => {
+  try {
+    const appServer = await initializeServer();
+    const port = Number(process.env.PORT);
+
+    startServer(appServer, port);
+
+    handleProcessSignals({ shutdownCallback: GracefulShutdownHelper.shutDown.bind(GracefulShutdownHelper), callbackArgs: [appServer] });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+
+    LoggerTracerInfrastructure.log(`Error during initialization: ${errorMessage}`, 'error');
+    process.exit(1);
+  }
+};
+
+process.on('uncaughtException', () => {
+  LoggerTracerInfrastructure.log('Uncaught exception, exiting process', 'error');
+  process.exit(1);
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Api gateway running on port ${port}`);
+process.on('unhandledRejection', () => {
+  LoggerTracerInfrastructure.log('Unhandled rejection, exiting process', 'error');
+  process.exit(1);
 });
+
+main();

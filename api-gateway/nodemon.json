@@ -1,5 +1,5 @@
 {
-  "watch": ["dist"],
+  "watch": ["src", "dist"],
   "ignore": ["node_modules/**", "*.log"],
   "env": {
     "NODE_ENV": "development",

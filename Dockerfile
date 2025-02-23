@@ -8,10 +8,24 @@ COPY ../../yarn.lock /app/
 RUN yarn install --frozen-lockfile
 
 WORKDIR /app/packages
-COPY ../../packages ./
+
+COPY ../../packages/package.json /app/packages/
+COPY ../../packages/tsconfig.json /app/packages/
+COPY ../../packages/.eslintrc.json /app/packages/
+
+COPY ../../packages/src /app/packages/src/
+
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
 
 WORKDIR /app/${SERVICE_NAME}
-COPY ../../${SERVICE_NAME} ./
+
+COPY ../../${SERVICE_NAME}/package.json /app/${SERVICE_NAME}/
+COPY ../../${SERVICE_NAME}/tsconfig.json /app/${SERVICE_NAME}/
+COPY ../../${SERVICE_NAME}/.eslintrc.json /app/${SERVICE_NAME}/
+COPY ../../${SERVICE_NAME}/nodemon.json /app/${SERVICE_NAME}/
+
+COPY ../../${SERVICE_NAME}/src /app/${SERVICE_NAME}/src/
 
 FROM node:20-alpine AS runtime
 
@@ -21,30 +35,31 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 
 WORKDIR /app/packages
-COPY --from=builder /app/packages/src ./src
-COPY --from=builder /app/packages/package.json .
-COPY --from=builder /app/packages/.eslintrc.json .
-COPY --from=builder /app/packages/tsconfig.json .
-COPY --from=builder /app/yarn.lock ./yarn.lock
+COPY --from=builder /app/packages/package.json /app/packages/
+COPY --from=builder /app/packages/tsconfig.json /app/packages/
+COPY --from=builder /app/packages/.eslintrc.json /app/packages/
 
-ARG ENV_PATH
-COPY ${ENV_PATH} /app/packages/.env
+COPY --from=builder /app/packages/src /app/packages/src/
+
+COPY --from=builder /app/yarn.lock /app/yarn.lock
 
 RUN apk add --no-cache python3 make g++
 RUN yarn install --frozen-lockfile
-RUN yarn build:dev
+RUN yarn build
 
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
 WORKDIR /app/${SERVICE_NAME}
-COPY --from=builder /app/${SERVICE_NAME}/src ./src
-COPY --from=builder /app/${SERVICE_NAME}/package.json .
-COPY --from=builder /app/${SERVICE_NAME}/tsconfig.json .
-COPY --from=builder /app/${SERVICE_NAME}/.eslintrc.json .
-COPY --from=builder /app/${SERVICE_NAME}/nodemon.json .
-COPY --from=builder /app/yarn.lock ./yarn.lock
 
+COPY --from=builder /app/${SERVICE_NAME}/package.json /app/${SERVICE_NAME}/
+COPY --from=builder /app/${SERVICE_NAME}/tsconfig.json /app/${SERVICE_NAME}/
+COPY --from=builder /app/${SERVICE_NAME}/.eslintrc.json /app/${SERVICE_NAME}/
+COPY --from=builder /app/${SERVICE_NAME}/nodemon.json /app/${SERVICE_NAME}/
+
+COPY --from=builder /app/${SERVICE_NAME}/src /app/${SERVICE_NAME}/src/
+
+ARG ENV_PATH
 COPY ${ENV_PATH} /app/${SERVICE_NAME}/.env
 
 RUN yarn install --frozen-lockfile

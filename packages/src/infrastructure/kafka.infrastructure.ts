@@ -1,6 +1,8 @@
 import { Kafka, Producer, Consumer, Partitioners } from 'kafkajs';
 
-export default class KafkaInfrastructure {
+import { LoggerTracerInfrastructure } from './logger-tracer.infrastructure';
+
+export class KafkaInfrastructure {
   private static kafka?: Kafka;
   private static producer?: Producer;
   private static consumer?: Consumer;
@@ -8,61 +10,23 @@ export default class KafkaInfrastructure {
   static async initialize (): Promise<void> {
     if (!KafkaInfrastructure.kafka) {
       try {
-        KafkaInfrastructure.kafka = new Kafka({
-          clientId: 'my-app',
-          brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
-          connectionTimeout: 5000,  
-          requestTimeout: 30000,  
-          retry: { retries: 5 },  
-        });
-        
-        KafkaInfrastructure.producer = KafkaInfrastructure.kafka.producer({
-          createPartitioner: Partitioners.LegacyPartitioner
-        });
-        
-        KafkaInfrastructure.consumer = KafkaInfrastructure.kafka.consumer({ 
-          groupId: 'my-group',
-          sessionTimeout: 30000,  
-          heartbeatInterval: 3000,  
-          maxWaitTimeInMs: 5000,  
-          metadataMaxAge: 10000,  
-          retry: { initialRetryTime: 300, retries: 8 }
-        });
-        
-        await KafkaInfrastructure.consumer.connect();
-        await KafkaInfrastructure.producer.connect();
+        const brokers = [process.env.KAFKA_BROKER || 'localhost:9092'];
 
-        console.log('Kafka initialized and connected.');
+        KafkaInfrastructure.kafka = new Kafka({ clientId: 'my-app', brokers });
+
+        KafkaInfrastructure.producer = KafkaInfrastructure.kafka.producer({ createPartitioner: Partitioners.LegacyPartitioner });
+        KafkaInfrastructure.consumer = KafkaInfrastructure.kafka.consumer({ groupId: 'my-group' });
+
+        await KafkaInfrastructure.producer.connect();
+        await KafkaInfrastructure.consumer.connect();
+
+        LoggerTracerInfrastructure.log('Kafka initialized and connected.');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.log(`Failed to initialize Kafka: ${errorMessage}`);
+        LoggerTracerInfrastructure.log(`Failed to initialize Kafka: ${errorMessage}`, 'error');
+
         throw error;
       }
-    }
-  }
-
-  static async ensureTopicExists (topicName: string): Promise<void> {
-    if (!KafkaInfrastructure.kafka) {
-      throw new Error('Kafka instance not initialized');
-    }
-
-    try {
-      const admin = KafkaInfrastructure.kafka.admin();
-      await admin.connect();
-
-      const existingTopics = await admin.listTopics();
-      if (!existingTopics.includes(topicName)) {
-        await admin.createTopics({ topics: [{ topic: topicName }] });
-        console.log(`Topic ${topicName} created.`);
-      } else {
-        console.log(`Topic ${topicName} already exists.`);
-      }
-
-      await admin.disconnect();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log(`Error checking or creating topic: ${errorMessage}`);
-      throw error;
     }
   }
 
@@ -72,19 +36,17 @@ export default class KafkaInfrastructure {
     }
 
     try {
-      await KafkaInfrastructure.producer.send({
-        topic: topicName,
-        messages: [{ value: message }],
-      });
-      console.log(`Message sent to topic ${topicName}`);
+      await KafkaInfrastructure.producer.send({ topic: topicName, messages: [{ value: message }] });
+      LoggerTracerInfrastructure.log(`Message sent to topic ${topicName}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log(`Failed to send message to ${topicName}: ${errorMessage}`);
+      LoggerTracerInfrastructure.log(`Failed to send message to ${topicName}: ${errorMessage}`, 'error');
+
       throw error;
     }
   }
 
-  static async subscribe (topicName: string, callback: (message: string) => void): Promise<void> {
+  static async subscribe (topicName: string): Promise<void> {
     if (!KafkaInfrastructure.consumer) {
       throw new Error('Kafka consumer not initialized');
     }
@@ -93,39 +55,37 @@ export default class KafkaInfrastructure {
       await KafkaInfrastructure.consumer.subscribe({ topic: topicName, fromBeginning: true });
       await KafkaInfrastructure.consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-          callback(message.value?.toString() || '');
+          const messageHandler = { topic, partition, offset: message.offset, value: message.value?.toString() };
+          LoggerTracerInfrastructure.log(`Received message: ${JSON.stringify(messageHandler)}`);
         }
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log(`Failed to subscribe to ${topicName}: ${errorMessage}`);
+      LoggerTracerInfrastructure.log(`Failed to subscribe to ${topicName}: ${errorMessage}`, 'error');
+
       throw error;
     }
   }
 
   static async disconnect (): Promise<void> {
     try {
-      if (KafkaInfrastructure.producer) {
-        await KafkaInfrastructure.producer.disconnect();
-        console.log('Kafka producer disconnected.');
-      }
+      if (this.consumer && this.producer) {
+        LoggerTracerInfrastructure.log('Disconnecting Kafka consumer and producer...');
 
-      if (KafkaInfrastructure.consumer) {
-        await KafkaInfrastructure.consumer.disconnect();
-        console.log('Kafka consumer disconnected.');
-      }
+        await this.consumer.disconnect();
+        await this.producer.disconnect();
 
-      if (KafkaInfrastructure.kafka) {
-        console.log('Kafka instance disconnected.');
+        LoggerTracerInfrastructure.log('Kafka disconnected successfully.');
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log(`Failed to disconnect Kafka: ${errorMessage}`);
-      throw error;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      LoggerTracerInfrastructure.log(`Failed to disconnect Kafka: ${errorMessage}`, 'error');
+
+      throw err;
     }
   }
 
-  static isConnected(): boolean {
+  static isConnected (): boolean {
     return !!KafkaInfrastructure.producer && !!KafkaInfrastructure.consumer;
   }
 }

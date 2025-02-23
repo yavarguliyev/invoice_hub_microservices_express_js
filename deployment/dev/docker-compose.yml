@@ -2,49 +2,48 @@ version: "3"
 
 services:
   zookeeper:
-    container_name: zookeeper
-    image: bitnami/zookeeper:latest
+    image: bitnami/zookeeper:3.8
     ports:
       - "2181:2181"
-    networks:
-      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ./root/zookeeper-data:/bitnami
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - ./root/zookeeper-data:/data
-      - ./root/zookeeper-logs:/datalog
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
-      interval: 30s
-      retries: 3
-      start_period: 30s
-      timeout: 30s
-
-  kafka:
-    container_name: kafka
-    image: bitnami/kafka:latest
-    ports:
-      - "9092:9092"
     networks:
       - ${CONTAINER_NAME_PREFIX}
+
+  kafka:
+    image: bitnami/kafka:3.6
+    volumes:
+      - ./root/kafka-data:/bitnami
     environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_CFG_LISTENERS: INTERNAL://:9092,EXTERNAL://0.0.0.0:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      ALLOW_PLAINTEXT_LISTENER: 'yes'
+    ports:
+      - "9092:9092"
+      - "29092:29092"
     depends_on:
       - zookeeper
-    volumes:
-      - ./root/kafka-data:/var/lib/kafka
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "9092"]
-      interval: 30s
-      retries: 3
-      start_period: 30s
-      timeout: 30s
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+  
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 9100:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
     
   api-gateway:
     container_name: api-gateway
@@ -64,7 +63,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
       - ../../packages:/app/packages
-      - ../../api-gateway:/app/api-gateway
+      - ../../api-gateway/src:/app/api-gateway/src:delegated
     depends_on:
       - kafka
       - invoice-service
@@ -91,7 +90,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
       - ../../packages:/app/packages
-      - ../../services/invoice-service:/app/services/invoice-service
+      - ../../services/invoice-service/src:/app/services/invoice-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start"
@@ -114,7 +113,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
       - ../../packages:/app/packages
-      - ../../services/order-service:/app/services/order-service
+      - ../../services/order-service/src:/app/services/order-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start"
@@ -137,7 +136,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
       - ../../packages:/app/packages
-      - ../../services/role-service:/app/services/role-service
+      - ../../services/role-service/src:/app/services/role-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start"
@@ -160,7 +159,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
       - ../../packages:/app/packages
-      - ../../services/user-service:/app/services/user-service
+      - ../../services/user-service/src:/app/services/user-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start"
@@ -171,5 +170,4 @@ networks:
 
 volumes:
   zookeeper-data:
-  zookeeper-logs:
   kafka-data:
