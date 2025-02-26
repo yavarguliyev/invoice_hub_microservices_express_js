@@ -3,7 +3,7 @@ import http from 'http';
 
 import { RetryHelper } from './retry.helper';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
-import { KafkaInfrastructure } from '../../infrastructure/kafka.infrastructure';
+import { KafkaInfrastructure } from '../../infrastructure/kafka/kafka.infrastructure';
 
 config();
 

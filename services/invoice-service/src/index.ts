@@ -9,11 +9,19 @@ import {
 } from '@invoice-hub/common-packages';
 
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices } from 'application/ioc/bindings';
 
 config();
 
+const initializeDependencyInjections = async (): Promise<void> => {
+  configureContainers();
+  configureInfrastructures();
+  configureControllersAndServices();
+};
+
 const initializeInfrastructureServices = async (): Promise<void> => {
   await KafkaInfrastructure.initialize();
+  configureKafkaServices();
 };
 
 const initializeServer = async (): Promise<http.Server> => {
@@ -34,6 +42,7 @@ const startServer = (httpServer: http.Server, port: number): void => {
 
 const main = async (): Promise<void> => {
   try {
+    await initializeDependencyInjections();
     await initializeInfrastructureServices();
 
     const appServer = await initializeServer();
