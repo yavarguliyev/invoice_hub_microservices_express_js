@@ -7,7 +7,7 @@ services:
     ports:
       - "2181:2181"
     volumes:
-      - ./root/zookeeper-data:/bitnami
+      - zookeeper-data:/bitnami
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
     networks:
@@ -17,7 +17,7 @@ services:
     container_name: kafka
     image: bitnami/kafka:3.6
     volumes:
-      - ./root/kafka-data:/bitnami
+      - kafka-data:/bitnami
     environment:
       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_CFG_LISTENERS: INTERNAL://:9092,EXTERNAL://0.0.0.0:29092
@@ -69,10 +69,32 @@ services:
       - ../../api-gateway/src:/app/api-gateway/src:delegated
     depends_on:
       - kafka
+      - auth-service
       - invoice-service
       - order-service
-      - role-service
-      - user-service
+    command: sh -c "yarn start"
+  
+  auth-service:
+    container_name: auth-service
+    image: invoice_hub_microservices_auth-service
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        NODE_PORT: 4001
+        SERVICE_NAME: services/auth-service
+        ENV_PATH: ./deployment/dev/.env
+    environment:
+      - PORT=4001
+    ports:
+      - "4001:4001"
+    networks:
+      - ${CONTAINER_NAME_PREFIX}
+    volumes:
+      - ../../packages:/app/packages
+      - ../../services/auth-service/src:/app/services/auth-service/src:delegated
+    depends_on:
+      - kafka
     command: sh -c "yarn start"
 
   invoice-service:
@@ -82,13 +104,13 @@ services:
       context: ../../
       dockerfile: Dockerfile
       args:
-        NODE_PORT: 4001
+        NODE_PORT: 4002
         SERVICE_NAME: services/invoice-service
         ENV_PATH: ./deployment/dev/.env
     environment:
-      - PORT=4001
+      - PORT=4002
     ports:
-      - "4001:4001"
+      - "4002:4002"
     networks:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
@@ -105,31 +127,8 @@ services:
       context: ../../
       dockerfile: Dockerfile
       args:
-        NODE_PORT: 4002
-        SERVICE_NAME: services/order-service
-        ENV_PATH: ./deployment/dev/.env
-    environment:
-      - PORT=4002
-    ports:
-      - "4002:4002"
-    networks:
-      - ${CONTAINER_NAME_PREFIX}
-    volumes:
-      - ../../packages:/app/packages
-      - ../../services/order-service/src:/app/services/order-service/src:delegated
-    depends_on:
-      - kafka
-    command: sh -c "yarn start"
-
-  role-service:
-    container_name: role-service
-    image: invoice_hub_microservices_role-service
-    build:
-      context: ../../
-      dockerfile: Dockerfile
-      args:
         NODE_PORT: 4003
-        SERVICE_NAME: services/role-service
+        SERVICE_NAME: services/order-service
         ENV_PATH: ./deployment/dev/.env
     environment:
       - PORT=4003
@@ -139,30 +138,7 @@ services:
       - ${CONTAINER_NAME_PREFIX}
     volumes:
       - ../../packages:/app/packages
-      - ../../services/role-service/src:/app/services/role-service/src:delegated
-    depends_on:
-      - kafka
-    command: sh -c "yarn start"
-
-  user-service:
-    container_name: user-service
-    image: invoice_hub_microservices_user-service
-    build:
-      context: ../../
-      dockerfile: Dockerfile
-      args:
-        NODE_PORT: 4004
-        SERVICE_NAME: services/user-service
-        ENV_PATH: ./deployment/dev/.env
-    environment:
-      - PORT=4004
-    ports:
-      - "4004:4004"
-    networks:
-      - ${CONTAINER_NAME_PREFIX}
-    volumes:
-      - ../../packages:/app/packages
-      - ../../services/user-service/src:/app/services/user-service/src:delegated
+      - ../../services/order-service/src:/app/services/order-service/src:delegated
     depends_on:
       - kafka
     command: sh -c "yarn start"

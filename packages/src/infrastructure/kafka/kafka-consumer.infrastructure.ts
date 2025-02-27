@@ -1,12 +1,11 @@
 import { Kafka, Consumer } from 'kafkajs';
-
 import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
 
 export class KafkaConsumerInfrastructure {
   private consumer: Consumer;
 
-  constructor(private kafka: Kafka, private groupId: string = 'my-group') {
-    this.consumer = this.kafka.consumer({ groupId: this.groupId });
+  constructor (private kafka: Kafka, private groupId: string = 'my-group') {
+    this.consumer = this.kafka.consumer({ groupId: this.groupId, sessionTimeout: 60000, heartbeatInterval: 6000, rebalanceTimeout: 3000 });
   }
 
   async connect (): Promise<void> {
@@ -25,16 +24,12 @@ export class KafkaConsumerInfrastructure {
 
               handler(messageStr);
               resolveOffset(message.offset);
-            } else {
-              LoggerTracerInfrastructure.log('Received message with no value');
             }
           }
 
           await heartbeat();
-
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          LoggerTracerInfrastructure.log(`Error processing batch: ${errorMessage}`);
+          LoggerTracerInfrastructure.log(`Error processing batch: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       },
       partitionsConsumedConcurrently: 3,
@@ -44,6 +39,5 @@ export class KafkaConsumerInfrastructure {
 
   async disconnect (): Promise<void> {
     await this.consumer.disconnect();
-    LoggerTracerInfrastructure.log('Kafka Consumer disconnected.');
   }
 }

@@ -1,36 +1,19 @@
-import { JsonController, Get, Post, Body, Param, QueryParams } from 'routing-controllers';
-import { createVersionedRoute } from '@invoice-hub/common-packages';
+import { JsonController, Get } from 'routing-controllers';
+import { ContainerHelper, createVersionedRoute } from '@invoice-hub/common-packages';
+
+import { IInvoiceService } from 'application/services/invoice.service';
+import { ContainerItems } from 'application/ioc/static/container-items';
 
 @JsonController(createVersionedRoute({ controllerPath: '/invoices', version: 'v1' }))
-export class InvoicessController {
-  constructor () {}
+export class InvoicesController {
+  private invoiceService: IInvoiceService;
+
+  constructor () {
+    this.invoiceService = ContainerHelper.get<IInvoiceService>(ContainerItems.IInvoiceService);
+  }
 
   @Get('/')
   async get () {
-    // KafkaInfrastructure.subscribe('invoice-topic');
-
-    return { message: 'Invoice service' };
-  }
-
-  @Get('/:id/id/:ref/ref')
-  async getByQuery (@Param('id') id: string, @Param('ref') ref: string, @QueryParams() query: any) {
-    const { status = 'status', amount = 10 } = query;
-
-    return {
-      message: `Invoice with this id: ${Number(id)} has updated this ref number: ${ref}. And status is ${status}, amount is ${amount}`
-    };
-  }
-
-  @Get('/:id')
-  async getById (@Param('id') id: number) {
-    return { message: `Invoice with this id: ${id}...` };
-  }
-
-  @Post('/')
-  async create (@Body() args: any) {
-    const { invoiceData } = args;
-    // await KafkaInfrastructure.publish('invoices-topic', JSON.stringify(invoiceData));
-
-    return { message: 'Invoice created and event sent', payload: { invoiceData } };
+    return await this.invoiceService.get();
   }
 }

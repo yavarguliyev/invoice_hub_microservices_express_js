@@ -1,7 +1,7 @@
 import { createExpressServer } from 'routing-controllers';
 import { Express } from 'express';
 
-import { InvoicessController } from 'api/v1/invoices.controller';
+import { InvoicesController } from 'api/v1/invoices.controller';
 
 export interface IExpressServerInfrastructure {
   get(): Promise<Express>;
@@ -21,7 +21,7 @@ export class ExpressServerInfrastructure implements IExpressServerInfrastructure
   }
 
   private createServer (): Express {
-    const controllers = [InvoicessController];
+    const controllers = [InvoicesController];
 
     const app = createExpressServer({
       controllers,

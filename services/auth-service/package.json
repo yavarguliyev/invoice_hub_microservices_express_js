@@ -1,7 +1,7 @@
 {
-	"name": "@invoice-hub/user-service",
+	"name": "@invoice-hub/auth-service",
 	"version": "1.0.0",
-	"description": "User Service",
+	"description": "Auth Service",
 	"main": "dist/index.js",
 	"author": "Yavar Guliyev",
 	"license": "MIT",

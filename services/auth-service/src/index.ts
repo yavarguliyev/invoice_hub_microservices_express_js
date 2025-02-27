@@ -9,7 +9,7 @@ import {
 } from '@invoice-hub/common-packages';
 
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
-import { configureContainers, configureControllersAndServices, configureInfrastructures } from 'application/ioc/bindings';
+import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices } from 'application/ioc/bindings';
 
 config();
 
@@ -21,6 +21,7 @@ const initializeDependencyInjections = async (): Promise<void> => {
 
 const initializeInfrastructureServices = async (): Promise<void> => {
   await KafkaInfrastructure.initialize();
+  configureKafkaServices();
 };
 
 const initializeServer = async (): Promise<http.Server> => {
@@ -35,7 +36,7 @@ const initializeServer = async (): Promise<http.Server> => {
 };
 
 const startServer = (httpServer: http.Server, port: number): void => {
-  httpServer.listen(port, () => LoggerTracerInfrastructure.log(`User service running on port ${port}`, 'info'));
+  httpServer.listen(port, () => LoggerTracerInfrastructure.log(`Auth service running on port ${port}`, 'info'));
   httpServer.timeout = parseInt(process.env.SERVER_TIMEOUT!);
 };
 

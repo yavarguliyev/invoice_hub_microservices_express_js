@@ -18,15 +18,11 @@ export class KafkaProducerInfrastructure {
       await this.producer.send({ topic: topicName, messages: [{ value: message }] });
       LoggerTracerInfrastructure.log(`Message sent to topic ${topicName}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      LoggerTracerInfrastructure.log(`Failed to send message: ${errorMessage}`, 'error');
-
-      throw error;
+      LoggerTracerInfrastructure.log(`Error creating topic ${topicName}: ${error}`);
     }
   }
 
   async disconnect (): Promise<void> {
     await this.producer.disconnect();
-    LoggerTracerInfrastructure.log('Kafka Producer disconnected...');
   }
 }

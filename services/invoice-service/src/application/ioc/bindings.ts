@@ -4,7 +4,7 @@ import { ContainerHelper, registerService } from '@invoice-hub/common-packages';
 
 import { ContainerItems } from 'application/ioc/static/container-items';
 import { IInvoiceService, InvoiceService } from 'application/services/invoice.service';
-import { InvoicessController } from 'api/v1/invoices.controller';
+import { InvoicesController } from 'api/v1/invoices.controller';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 export function configureContainers () {
@@ -19,7 +19,7 @@ export function configureControllersAndServices () {
   registerService({ id: ContainerItems.IInvoiceService, service: InvoiceService });
 
   ContainerHelper
-    .registerController(InvoicessController);
+    .registerController(InvoicesController);
 };
 
 export function configureKafkaServices () {
