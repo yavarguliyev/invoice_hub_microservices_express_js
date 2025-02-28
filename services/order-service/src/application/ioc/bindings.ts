@@ -22,7 +22,7 @@ export function configureControllersAndServices () {
     .registerController(OrdersController);
 };
 
-export function configureKafkaServices () {
+export async function configureKafkaServices () {
   const orderService = ContainerHelper.get<IOrderService>(ContainerItems.IOrderService);
-  orderService.initialize();
+  await orderService.initialize();
 };

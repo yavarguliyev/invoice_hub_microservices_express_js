@@ -6,7 +6,7 @@ services:
     build:
       context: ./nginx
     networks:
-      - backend
+      - common
     ports:
       - "8080:80"
     depends_on:
@@ -31,7 +31,7 @@ services:
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
     networks:
-      - backend
+      - common
 
   kafka:
     container_name: kafka
@@ -57,7 +57,7 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - backend
+      - common
   
   kafka-ui:
     container_name: kafka-ui
@@ -71,7 +71,7 @@ services:
     depends_on:
       - kafka
     networks:
-      - backend
+      - common
     
   api-gateway:
     container_name: api-gateway
@@ -88,7 +88,7 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - backend
+      - common
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://api-gateway:3000"]
@@ -98,9 +98,9 @@ services:
       - ../../packages:/app/packages
     depends_on:
       - kafka
-      - auth-service
-      - invoice-service
       - order-service
+      - invoice-service
+      - auth-service
     command: sh -c "yarn start:prod"
 
   auth-service:
@@ -116,7 +116,7 @@ services:
     environment:
       - PORT=4001
     networks:
-      - backend
+      - common
     restart: always
     ports:
       - "4001:4001"
@@ -128,6 +128,8 @@ services:
       - ../../packages:/app/packages
     depends_on:
       - kafka
+      - order-service
+      - invoice-service
     command: sh -c "yarn start:prod"
 
   invoice-service:
@@ -143,7 +145,7 @@ services:
     environment:
       - PORT=4002
     networks:
-      - backend
+      - common
     restart: always
     ports:
       - "4002:4002"
@@ -155,6 +157,7 @@ services:
       - ../../packages:/app/packages
     depends_on:
       - kafka
+      - order-service
     command: sh -c "yarn start:prod"
 
   order-service:
@@ -170,7 +173,7 @@ services:
     environment:
       - PORT=4003
     networks:
-      - backend
+      - common
     restart: always
     ports:
       - "4003:4003"
@@ -185,7 +188,7 @@ services:
     command: sh -c "yarn start:prod"
 
 networks:
-  backend:
+  common:
     driver: bridge
 
 volumes:

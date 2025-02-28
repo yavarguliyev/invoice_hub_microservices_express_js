@@ -15,9 +15,9 @@ export class OrderService implements IOrderService {
 
   async handleOrderCreated (message: string) {
     const { orderId, order } = JSON.parse(message);
-
-    LoggerTracerInfrastructure.log(`Order by id: ${orderId} created, generating invoice...`);
     await KafkaInfrastructure.publish('invoice-generate', JSON.stringify({ orderId, order }));
+
+    LoggerTracerInfrastructure.log(`Order Id: ${orderId} generated for generating invoice for the order: ${JSON.stringify({ order })}...`);
   }
 
   async get () {

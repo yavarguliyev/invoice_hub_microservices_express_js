@@ -11,7 +11,7 @@ services:
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
 
   kafka:
     container_name: kafka
@@ -32,7 +32,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
   
   kafka-ui:
     container_name: kafka-ui
@@ -46,7 +46,7 @@ services:
     depends_on:
       - kafka
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
     
   api-gateway:
     container_name: api-gateway
@@ -63,15 +63,15 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
     volumes:
       - ../../packages:/app/packages
       - ../../api-gateway/src:/app/api-gateway/src:delegated
     depends_on:
       - kafka
-      - auth-service
-      - invoice-service
       - order-service
+      - invoice-service
+      - auth-service
     command: sh -c "yarn start"
   
   auth-service:
@@ -89,12 +89,14 @@ services:
     ports:
       - "4001:4001"
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
     volumes:
       - ../../packages:/app/packages
       - ../../services/auth-service/src:/app/services/auth-service/src:delegated
     depends_on:
       - kafka
+      - order-service
+      - invoice-service
     command: sh -c "yarn start"
 
   invoice-service:
@@ -112,12 +114,13 @@ services:
     ports:
       - "4002:4002"
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
     volumes:
       - ../../packages:/app/packages
       - ../../services/invoice-service/src:/app/services/invoice-service/src:delegated
     depends_on:
       - kafka
+      - order-service
     command: sh -c "yarn start"
   
   order-service:
@@ -135,7 +138,7 @@ services:
     ports:
       - "4003:4003"
     networks:
-      - ${CONTAINER_NAME_PREFIX}
+      - common
     volumes:
       - ../../packages:/app/packages
       - ../../services/order-service/src:/app/services/order-service/src:delegated
@@ -144,7 +147,7 @@ services:
     command: sh -c "yarn start"
 
 networks:
-  backend:
+  common:
     driver: bridge
 
 volumes:

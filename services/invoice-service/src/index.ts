@@ -21,7 +21,7 @@ const initializeDependencyInjections = async (): Promise<void> => {
 
 const initializeInfrastructureServices = async (): Promise<void> => {
   await KafkaInfrastructure.initialize();
-  configureKafkaServices();
+  await configureKafkaServices();
 };
 
 const initializeServer = async (): Promise<http.Server> => {

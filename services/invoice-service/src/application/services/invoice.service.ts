@@ -15,11 +15,9 @@ export class InvoiceService implements IInvoiceService {
 
   async handleInvoiceGeneration (message: string) {
     const { orderId, order } = JSON.parse(message);
-
-    LoggerTracerInfrastructure.log(`Generating invoice for Order ${orderId}...`);
     const invoiceId = Math.floor(Math.random() * 1000);
 
-    LoggerTracerInfrastructure.log(`Generating invoice for Order ${invoiceId} for the order: ${JSON.stringify({ order })}...`);
+    LoggerTracerInfrastructure.log(`Generated Invoice Id: ${invoiceId} for the order id: ${orderId}: ${JSON.stringify({ order })}...`);
   }
 
   async get () {

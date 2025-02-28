@@ -1,4 +1,5 @@
-import { Kafka } from 'kafkajs';
+import { Kafka, logLevel } from 'kafkajs';
+
 import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
 import { KafkaProducerInfrastructure } from './kafka-producer.infrastructure';
 import { KafkaConsumerInfrastructure } from './kafka-consumer.infrastructure';
@@ -14,7 +15,7 @@ export class KafkaInfrastructure {
     }
 
     const brokers = [process.env.KAFKA_BROKER!];
-    this.kafka = new Kafka({ clientId: 'my-app', brokers, requestTimeout: 30000 });
+    this.kafka = new Kafka({ clientId: 'my-app', brokers, logCreator: LoggerTracerInfrastructure.kafkaLogCreator });
 
     this.producer = new KafkaProducerInfrastructure(this.kafka);
     this.consumer = new KafkaConsumerInfrastructure(this.kafka);

@@ -1,4 +1,5 @@
 import winston from 'winston';
+import { logCreator, logLevel, LogEntry } from 'kafkajs';
 
 import { LoggerTracerLevels } from '../core/types/logger-tracer.type';
 
@@ -23,6 +24,25 @@ export class LoggerTracerInfrastructure {
       this.logger.error(msg);
     } else {
       this.logger.info(msg);
+    }
+  }
+
+  static kafkaLogCreator: logCreator = (level) => (entry: LogEntry) => {
+    const levelMapping: Record<logLevel, LoggerTracerLevels> = {
+      [logLevel.ERROR]: 'error',
+      [logLevel.WARN]: 'warn',
+      [logLevel.INFO]: 'info',
+      [logLevel.DEBUG]: 'debug',
+      [logLevel.NOTHING]: 'info'
+    };
+
+    const memberAssignment = entry.log?.memberAssignment;
+    if (memberAssignment) {
+      const topicName = Object.keys(memberAssignment)[0];
+      const groupId = entry.log.groupId;
+      const logMessage = entry.log.message;
+
+      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}, Topic: ${topicName}`, levelMapping[level]);
     }
   }
 }

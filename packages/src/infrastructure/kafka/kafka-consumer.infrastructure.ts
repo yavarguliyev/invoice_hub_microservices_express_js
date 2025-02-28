@@ -5,7 +5,7 @@ export class KafkaConsumerInfrastructure {
   private consumer: Consumer;
 
   constructor (private kafka: Kafka, private groupId: string = 'my-group') {
-    this.consumer = this.kafka.consumer({ groupId: this.groupId, sessionTimeout: 60000, heartbeatInterval: 6000, rebalanceTimeout: 3000 });
+    this.consumer = this.kafka.consumer({ groupId: this.groupId });
   }
 
   async connect (): Promise<void> {
@@ -20,9 +20,7 @@ export class KafkaConsumerInfrastructure {
         try {
           for (const message of batch.messages) {
             if (message.value) {
-              const messageStr = message.value.toString();
-
-              handler(messageStr);
+              handler(message.value.toString());
               resolveOffset(message.offset);
             }
           }
