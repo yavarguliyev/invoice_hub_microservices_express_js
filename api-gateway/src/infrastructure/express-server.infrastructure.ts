@@ -1,6 +1,7 @@
 import { createExpressServer } from 'routing-controllers';
 import { Express } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { ErrorHandlerMiddleware } from '@invoice-hub/common-packages';
 
 import { ApiGatewayController } from 'api/v1/api-gateway.controller';
 
@@ -26,7 +27,7 @@ export class ExpressServerInfrastructure implements IExpressServerInfrastructure
 
     const app = createExpressServer({
       controllers,
-      middlewares: [],
+      middlewares: [ErrorHandlerMiddleware],
       defaultErrorHandler: false
     });
 

@@ -1,7 +1,40 @@
-import { Entity } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import { BaseEntity } from '@invoice-hub/common-packages';
+import { IsString, Length, IsNumber, IsEnum, IsUUID, IsOptional } from 'class-validator';
 
 import { Entities } from 'domain/enums/entities.enum';
+import { InvoiceStatus } from 'domain/enums/invoice-status.enum';
 
 @Entity(Entities.INVOICE)
-export default class Invoice extends BaseEntity {}
+export default class Invoice extends BaseEntity {
+  @Column({ type: 'uuid' })
+  @IsUUID()
+  orderId: string;
+
+  @Column({ type: 'uuid' })
+  @IsUUID()
+  userId: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  @IsString()
+  @Length(1, 255)
+  title: string;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  @IsNumber()
+  amount: number;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @Column({ type: 'varchar', length: 64 })
+  @IsEnum(InvoiceStatus)
+  status: InvoiceStatus;
+
+  @Column({ type: 'text', nullable: true })
+  @IsString()
+  @IsOptional()
+  pdfUrl?: string;
+}

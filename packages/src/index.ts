@@ -6,4 +6,8 @@ export { KafkaInfrastructure } from './infrastructure/kafka/kafka.infrastructure
 export { LoggerTracerInfrastructure } from './infrastructure/logger-tracer.infrastructure';
 export { BadRequestError, DatabaseConnectionError, NotAuthorizedError, NotFoundError, RequestValidationError, CustomError } from './core/errors';
 export { ErrorHandlerMiddleware } from './core/middlewares/error-handler.middleware';
+export { PasswordStrengthDecorator } from './core/decorators/password-strength.decorator';
 export { BaseEntity } from './domain/entities/base.entity';
+export { appConfig } from './core/configs/app.config';
+export { getDataSourceConfig } from './core/configs/datasource.config';
+export { passportConfig } from './core/configs/passport.config';

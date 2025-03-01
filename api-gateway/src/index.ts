@@ -8,8 +8,16 @@ import {
 } from '@invoice-hub/common-packages';
 
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { configureContainers, configureControllersAndServices, configureInfrastructures, configureMiddlewares } from 'application/ioc/bindings';
 
 config();
+
+const initializeDependencyInjections = async (): Promise<void> => {
+  configureContainers();
+  configureInfrastructures();
+  configureMiddlewares();
+  configureControllersAndServices();
+};
 
 const initializeServer = async (): Promise<http.Server> => {
   const expressServer = new ExpressServerInfrastructure();
@@ -29,6 +37,8 @@ const startServer = (httpServer: http.Server, port: number): void => {
 
 const main = async (): Promise<void> => {
   try {
+    await initializeDependencyInjections();
+
     const appServer = await initializeServer();
     const port = Number(process.env.PORT);
 

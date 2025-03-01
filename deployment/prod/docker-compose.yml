@@ -115,6 +115,10 @@ services:
         ENV_PATH: ./deployment/prod/.env
     environment:
       - PORT=4001
+      - POSTGRES_DB=auth_service_db
+      - DB_DEFAULT_DATABASE=auth_service_db
+      - DB_DEFAULT_HOST=auth-db
+      - DB_DEFAULT_PORT=5432
     networks:
       - common
     restart: always
@@ -127,10 +131,34 @@ services:
     volumes:
       - ../../packages:/app/packages
     depends_on:
+      - auth-db
       - kafka
       - order-service
       - invoice-service
     command: sh -c "yarn start:prod"
+
+  auth-db:
+    container_name: auth-db
+    image: postgres:13.5-alpine
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=auth_service_db
+      - DB_DEFAULT_DATABASE=auth_service_db
+      - DB_DEFAULT_HOST=auth-db
+      - DB_DEFAULT_PORT=5432
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "54321:5432"
+    networks:
+      - common
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost", "-p", "5432"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
   invoice-service:
     container_name: invoice-service
@@ -144,6 +172,10 @@ services:
         ENV_PATH: ./deployment/prod/.env
     environment:
       - PORT=4002
+      - POSTGRES_DB=invoice_service_db
+      - DB_DEFAULT_DATABASE=invoice_service_db
+      - DB_DEFAULT_HOST=invoice-db
+      - DB_DEFAULT_PORT=5432
     networks:
       - common
     restart: always
@@ -156,9 +188,33 @@ services:
     volumes:
       - ../../packages:/app/packages
     depends_on:
+      - invoice-db
       - kafka
       - order-service
     command: sh -c "yarn start:prod"
+
+  invoice-db:
+    container_name: invoice-db
+    image: postgres:13.5-alpine
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=invoice_service_db
+      - DB_DEFAULT_DATABASE=invoice_service_db
+      - DB_DEFAULT_HOST=invoice-db
+      - DB_DEFAULT_PORT=54322
+    volumes:
+      - invoice-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "54322:5432"
+    networks:
+      - common
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost", "-p", "5432"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
   order-service:
     container_name: order-service
@@ -172,6 +228,10 @@ services:
         ENV_PATH: ./deployment/prod/.env
     environment:
       - PORT=4003
+      - POSTGRES_DB=order_service_db
+      - DB_DEFAULT_DATABASE=order_service_db
+      - DB_DEFAULT_HOST=order-db
+      - DB_DEFAULT_PORT=5432
     networks:
       - common
     restart: always
@@ -184,8 +244,32 @@ services:
     volumes:
       - ../../packages:/app/packages
     depends_on:
+      - order-db
       - kafka
     command: sh -c "yarn start:prod"
+
+  order-db:
+    container_name: order-db
+    image: postgres:13.5-alpine
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=order_service_db
+      - DB_DEFAULT_DATABASE=order_service_db
+      - DB_DEFAULT_HOST=order-db
+      - DB_DEFAULT_PORT=54323
+    volumes:
+      - order-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "54323:5432"
+    networks:
+      - common
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost", "-p", "5432"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
 networks:
   common:
@@ -194,3 +278,6 @@ networks:
 volumes:
   zookeeper-data:
   kafka-data:
+  auth-postgres-data:
+  invoice-postgres-data:
+  order-postgres-data:
