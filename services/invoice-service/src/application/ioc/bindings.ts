@@ -1,6 +1,6 @@
 import { Container } from 'typedi';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, registerService } from '@invoice-hub/common-packages';
+import { ContainerHelper, ErrorHandlerMiddleware, registerService } from '@invoice-hub/common-packages';
 
 import { ContainerItems } from 'application/ioc/static/container-items';
 import { IInvoiceService, InvoiceService } from 'application/services/invoice.service';
@@ -13,6 +13,10 @@ export function configureContainers () {
 
 export function configureInfrastructures () {
   Container.set(ExpressServerInfrastructure, new ExpressServerInfrastructure());
+};
+
+export function configureMiddlewares () {
+  Container.set(ErrorHandlerMiddleware, new ErrorHandlerMiddleware());
 };
 
 export function configureControllersAndServices () {

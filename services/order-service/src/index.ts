@@ -9,13 +9,14 @@ import {
 } from '@invoice-hub/common-packages';
 
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
-import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices } from 'application/ioc/bindings';
+import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices, configureMiddlewares } from 'application/ioc/bindings';
 
 config();
 
 const initializeDependencyInjections = async (): Promise<void> => {
   configureContainers();
   configureInfrastructures();
+  configureMiddlewares();
   configureControllersAndServices();
 };
 
