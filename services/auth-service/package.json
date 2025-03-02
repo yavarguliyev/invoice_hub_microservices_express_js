@@ -3,9 +3,18 @@
 	"version": "1.0.0",
 	"description": "Auth Service",
 	"main": "dist/index.js",
+	"repository": "git@github.com:yavarguliyev/invoice_hub_microservices.git",
 	"author": "Yavar Guliyev",
 	"license": "MIT",
 	"scripts": {
+		"clean:migrations": "rimraf migrations/*.js",
+		"typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
+		"migrations:create": "node scripts/createMigration.js",
+		"migrations:generate": "yarn typeorm migration:generate migrations/ -d src/data-source.ts",
+		"migrations:run": "yarn typeorm migration:run -d src/data-source.ts",
+		"migrations:revert": "yarn typeorm migration:revert -d src/data-source.ts",
+		"mup": "yarn migrations:run",
+		"mdn": "yarn migrations:revert",
 		"clean:dist": "rimraf dist/*",
 		"lint": "esw --watch --ext .ts src",
 		"build": "yarn clean:dist",
@@ -16,6 +25,7 @@
 	},
 	"keywords": [],
 	"dependencies": {
-		"@invoice-hub/common-packages": "*"
+		"@invoice-hub/common-packages": "*",
+		"typeorm": "^0.3.20"
 	}
 }

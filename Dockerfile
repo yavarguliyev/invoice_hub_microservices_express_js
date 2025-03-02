@@ -12,7 +12,6 @@ WORKDIR /app/packages
 COPY ../../packages/package.json /app/packages/
 COPY ../../packages/tsconfig.json /app/packages/
 COPY ../../packages/.eslintrc.json /app/packages/
-
 COPY ../../packages/src /app/packages/src/
 
 ARG SERVICE_NAME
@@ -24,7 +23,6 @@ COPY ../../${SERVICE_NAME}/package.json /app/${SERVICE_NAME}/
 COPY ../../${SERVICE_NAME}/tsconfig.json /app/${SERVICE_NAME}/
 COPY ../../${SERVICE_NAME}/.eslintrc.json /app/${SERVICE_NAME}/
 COPY ../../${SERVICE_NAME}/nodemon.json /app/${SERVICE_NAME}/
-
 COPY ../../${SERVICE_NAME}/src /app/${SERVICE_NAME}/src/
 
 FROM node:20-alpine AS runtime
@@ -35,12 +33,11 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 
 WORKDIR /app/packages
+
 COPY --from=builder /app/packages/package.json /app/packages/
 COPY --from=builder /app/packages/tsconfig.json /app/packages/
 COPY --from=builder /app/packages/.eslintrc.json /app/packages/
-
 COPY --from=builder /app/packages/src /app/packages/src/
-
 COPY --from=builder /app/yarn.lock /app/yarn.lock
 
 RUN apk add --no-cache python3 make g++
@@ -56,7 +53,6 @@ COPY --from=builder /app/${SERVICE_NAME}/package.json /app/${SERVICE_NAME}/
 COPY --from=builder /app/${SERVICE_NAME}/tsconfig.json /app/${SERVICE_NAME}/
 COPY --from=builder /app/${SERVICE_NAME}/.eslintrc.json /app/${SERVICE_NAME}/
 COPY --from=builder /app/${SERVICE_NAME}/nodemon.json /app/${SERVICE_NAME}/
-
 COPY --from=builder /app/${SERVICE_NAME}/src /app/${SERVICE_NAME}/src/
 
 ARG ENV_PATH

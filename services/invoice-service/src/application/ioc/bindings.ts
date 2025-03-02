@@ -8,6 +8,8 @@ import { IInvoiceService, InvoiceService } from 'application/services/invoice.se
 import { InvoicesController } from 'api/v1/invoices.controller';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
+import Invoice from 'domain/entities/invoice.entity';
+import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 
 export function configureContainers () {
   typeormUseContainer(Container);
@@ -17,6 +19,8 @@ export function configureContainers () {
 export async function configureRepositories () {
   const dataSource = await DbConnectionInfrastructure.create();
   await dataSource.initialize();
+
+  Container.set(InvoiceRepository, dataSource.getRepository(Invoice));
 };
 
 export function configureInfrastructures () {

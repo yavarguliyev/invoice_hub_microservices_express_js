@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
-import { DataSourceOptions, EntitySchema, EntityTarget } from 'typeorm';
+import { DataSourceOptions } from 'typeorm';
+
+import Invoice from 'domain/entities/invoice.entity';
 
 dotenv.config();
 
@@ -10,13 +12,14 @@ export const baseConfig: DataSourceOptions = {
   username: process.env.DB_DEFAULT_USERNAME,
   password: process.env.DB_DEFAULT_PASSWORD,
   database: process.env.DB_DEFAULT_DATABASE,
+  entities: [Invoice],
   synchronize: false,
   logging: false,
   subscribers: []
 };
 
-export const getDataSourceConfig = <T>(includeMigrations = false, entities: EntityTarget<T>[] = []): DataSourceOptions => {
+export const getDataSourceConfig = (includeMigrations = false): DataSourceOptions => {
   return includeMigrations
-    ? { ...baseConfig, entities: entities as (string | Function | EntitySchema<T>)[], migrations: ['migrations/*.ts'] }
-    : { ...baseConfig, entities: entities as (string | Function | EntitySchema<T>)[] };
+    ? { ...baseConfig, migrations: ['migrations/*.ts'] }
+    : { ...baseConfig };
 };

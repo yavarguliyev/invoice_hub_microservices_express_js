@@ -1,8 +1,8 @@
 import { Column, Entity } from 'typeorm';
-import { BaseEntity } from '@invoice-hub/common-packages';
 import { IsNumber, IsEnum, IsUUID } from 'class-validator';
 
 import { Entities } from 'domain/enums/entities.enum';
+import { BaseEntity } from 'domain/entities/base.entity';
 import { OrderStatus } from 'domain/enums/order-status.enum';
 
 @Entity(Entities.ORDER)

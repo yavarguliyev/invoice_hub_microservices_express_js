@@ -47,7 +47,61 @@ services:
       - kafka
     networks:
       - common
+
+  auth-db:
+    container_name: auth-db
+    image: postgres:13.5-alpine
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=auth_service_db
+      - DB_DEFAULT_DATABASE=auth_service_db
+      - DB_DEFAULT_HOST=auth-db
+      - DB_DEFAULT_PORT=5432
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "54321:5432"
+    networks:
+      - common
+  
+  invoice-db:
+    container_name: invoice-db
+    image: postgres:13.5-alpine
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=invoice_service_db
+      - DB_DEFAULT_DATABASE=invoice_service_db
+      - DB_DEFAULT_HOST=invoice-db
+      - DB_DEFAULT_PORT=54322
+    volumes:
+      - invoice-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "54322:5432"
+    networks:
+      - common
     
+  order-db:
+    container_name: order-db
+    image: postgres:13.5-alpine
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=order_service_db
+      - DB_DEFAULT_DATABASE=order_service_db
+      - DB_DEFAULT_HOST=order-db
+      - DB_DEFAULT_PORT=54323
+    volumes:
+      - order-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "54323:5432"
+    networks:
+      - common
+
   api-gateway:
     container_name: api-gateway
     image: invoice_hub_microservices_api-gateway
@@ -100,30 +154,13 @@ services:
     volumes:
       - ../../packages:/app/packages
       - ../../services/auth-service/src:/app/services/auth-service/src:delegated
+      - ../../services/auth-service/migrations:/app/services/auth-service/migrations:delegated
     depends_on:
       - auth-db
       - kafka
       - order-service
       - invoice-service
-    command: sh -c "yarn start"
-
-  auth-db:
-    container_name: auth-db
-    image: postgres:13.5-alpine
-    restart: always
-    env_file:
-      - ./.env
-    environment:
-      - POSTGRES_DB=auth_service_db
-      - DB_DEFAULT_DATABASE=auth_service_db
-      - DB_DEFAULT_HOST=auth-db
-      - DB_DEFAULT_PORT=5432
-    volumes:
-      - auth-postgres-data:/var/lib/postgresql/data
-    ports:
-      - "54321:5432"
-    networks:
-      - common
+    command: sh -c "yarn mup && yarn start"
 
   invoice-service:
     container_name: invoice-service
@@ -148,29 +185,12 @@ services:
     volumes:
       - ../../packages:/app/packages
       - ../../services/invoice-service/src:/app/services/invoice-service/src:delegated
+      - ../../services/invoice-service/migrations:/app/services/invoice-service/migrations:delegated
     depends_on:
       - invoice-db
       - kafka
       - order-service
-    command: sh -c "yarn start"
-
-  invoice-db:
-    container_name: invoice-db
-    image: postgres:13.5-alpine
-    restart: always
-    env_file:
-      - ./.env
-    environment:
-      - POSTGRES_DB=invoice_service_db
-      - DB_DEFAULT_DATABASE=invoice_service_db
-      - DB_DEFAULT_HOST=invoice-db
-      - DB_DEFAULT_PORT=54322
-    volumes:
-      - invoice-postgres-data:/var/lib/postgresql/data
-    ports:
-      - "54322:5432"
-    networks:
-      - common
+    command: sh -c "yarn mup && yarn start"
   
   order-service:
     container_name: order-service
@@ -195,28 +215,11 @@ services:
     volumes:
       - ../../packages:/app/packages
       - ../../services/order-service/src:/app/services/order-service/src:delegated
+      - ../../services/order-service/migrations:/app/services/order-service/migrations:delegated
     depends_on:
       - order-db
       - kafka
-    command: sh -c "yarn start"
-  
-  order-db:
-    container_name: order-db
-    image: postgres:13.5-alpine
-    restart: always
-    env_file:
-      - ./.env
-    environment:
-      - POSTGRES_DB=order_service_db
-      - DB_DEFAULT_DATABASE=order_service_db
-      - DB_DEFAULT_HOST=order-db
-      - DB_DEFAULT_PORT=54323
-    volumes:
-      - order-postgres-data:/var/lib/postgresql/data
-    ports:
-      - "54323:5432"
-    networks:
-      - common
+    command: sh -c "yarn mup && yarn start"
 
 networks:
   common:

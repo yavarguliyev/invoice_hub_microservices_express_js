@@ -1,9 +1,10 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { Length, IsEmail, IsString } from 'class-validator';
-import { BaseEntity, PasswordStrengthDecorator } from '@invoice-hub/common-packages';
+import { PasswordStrengthDecorator } from '@invoice-hub/common-packages';
 import bcrypt from 'bcrypt';
 
 import { Entities } from 'domain/enums/entities.enum';
+import { BaseEntity } from 'domain/entities/base.entity';
 import Role from 'domain/entities/role.entity';
 
 @Entity(Entities.USER)

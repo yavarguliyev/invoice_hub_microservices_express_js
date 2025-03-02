@@ -1,8 +1,8 @@
 import { Column, Entity, OneToMany } from 'typeorm';
-import { BaseEntity } from '@invoice-hub/common-packages';
 import { IsEnum } from 'class-validator';
 
 import { Entities } from 'domain/enums/entities.enum';
+import { BaseEntity } from 'domain/entities/base.entity';
 import { Permissions } from 'domain/enums/permission.enum';
 import RolePermission from 'domain/entities/role-permission.entity';
 

@@ -2,6 +2,12 @@
   "name": "invoice-hub",
   "private": true,
   "workspaces": {
-    "packages": ["api-gateway", "packages", "services/*"]
+    "packages": ["api-gateway", "packages", "services/*"],
+    "nohoist": [
+      "**/typeorm/**",
+      "**/typeorm",
+      "**/http-proxy-middleware/**",
+      "**/http-proxy-middleware"
+    ]
   }
 }

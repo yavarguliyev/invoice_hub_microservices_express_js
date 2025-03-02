@@ -1,7 +1,7 @@
 import { Entity, ManyToOne } from 'typeorm';
-import { BaseEntity } from '@invoice-hub/common-packages';
 
 import { Entities } from 'domain/enums/entities.enum';
+import { BaseEntity } from 'domain/entities/base.entity';
 import Role from 'domain/entities/role.entity';
 import Permission from 'domain/entities/permission.entity';
 

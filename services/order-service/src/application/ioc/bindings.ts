@@ -8,6 +8,8 @@ import { IOrderService, OrderService } from 'application/services/order.service'
 import { OrdersController } from 'api/v1/orders.controller';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
+import Order from 'domain/entities/order.entity';
+import { OrderRepository } from 'domain/repositories/order.repository';
 
 export function configureContainers () {
   typeormUseContainer(Container);
@@ -17,6 +19,8 @@ export function configureContainers () {
 export async function configureRepositories () {
   const dataSource = await DbConnectionInfrastructure.create();
   await dataSource.initialize();
+
+  Container.set(OrderRepository, dataSource.getRepository(Order));
 };
 
 export function configureInfrastructures () {
