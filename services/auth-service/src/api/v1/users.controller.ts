@@ -1,5 +1,5 @@
-import { JsonController, HttpCode, Post } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute } from '@invoice-hub/common-packages';
+import { JsonController, HttpCode, Post, Get, QueryParams } from 'routing-controllers';
+import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs } from '@invoice-hub/common';
 
 import { IUserService } from 'application/services/user.service';
 import { ContainerItems } from 'application/ioc/static/container-items';
@@ -10,6 +10,11 @@ export class UsersController {
 
   constructor () {
     this.userService = ContainerHelper.get<IUserService>(ContainerItems.IUserService);
+  }
+
+  @Get('/')
+  async get (@QueryParams() query: GetQueryResultsArgs) {
+    return await this.userService.get(query);
   }
 
   @HttpCode(201)

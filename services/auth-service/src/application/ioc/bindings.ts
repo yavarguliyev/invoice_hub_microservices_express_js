@@ -1,7 +1,7 @@
 import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, registerService, ErrorHandlerMiddleware } from '@invoice-hub/common-packages';
+import { ContainerHelper, registerService, GlobalErrorHandlerMiddleware } from '@invoice-hub/common';
 
 import { ContainerItems } from 'application/ioc/static/container-items';
 import { IAuthService, AuthService } from 'application/services/auth.service';
@@ -15,11 +15,7 @@ import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrast
 import User from 'domain/entities/user.entity';
 import { UserRepository } from 'domain/repositories/user.repository';
 import Role from 'domain/entities/role.entity';
-import RolePermission from 'domain/entities/role-permission.entity';
-import Permission from 'domain/entities/permission.entity';
-import { PermissionRepository } from 'domain/repositories/permission.repository';
 import { RoleRepository } from 'domain/repositories/role.repository';
-import { RolePermissionRepository } from 'domain/repositories/role-permission.repository';
 
 export function configureContainers () {
   typeormUseContainer(Container);
@@ -30,8 +26,6 @@ export async function configureRepositories () {
   const dataSource = await DbConnectionInfrastructure.create();
   await dataSource.initialize();
 
-  Container.set(PermissionRepository, dataSource.getRepository(Permission));
-  Container.set(RolePermissionRepository, dataSource.getRepository(RolePermission));
   Container.set(RoleRepository, dataSource.getRepository(Role));
   Container.set(UserRepository, dataSource.getRepository(User));
 };
@@ -41,7 +35,7 @@ export function configureInfrastructures () {
 };
 
 export function configureMiddlewares () {
-  Container.set(ErrorHandlerMiddleware, new ErrorHandlerMiddleware());
+  Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
 };
 
 export function configureControllersAndServices () {

@@ -5,7 +5,6 @@ import { Entities } from 'domain/enums/entities.enum';
 import { Roles } from 'domain/enums/roles.enum';
 import { BaseEntity } from 'domain/entities/base.entity';
 import User from 'domain/entities/user.entity';
-import RolePermission from 'domain/entities/role-permission.entity';
 
 @Entity(Entities.ROLE)
 export default class Role extends BaseEntity {
@@ -15,7 +14,4 @@ export default class Role extends BaseEntity {
 
   @OneToMany(() => User, (user) => user.role)
   users: User[];
-
-  @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role)
-  rolePermissions: RolePermission[];
 }

@@ -198,7 +198,7 @@ services:
       interval: 10s
       retries: 3
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../services/auth-service/migrations:/app/services/auth-service/migrations:delegated
     depends_on:
       - auth-db
@@ -233,7 +233,7 @@ services:
       interval: 10s
       retries: 3
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../services/invoice-service/migrations:/app/services/invoice-service/migrations:delegated
     depends_on:
       - invoice-db
@@ -267,7 +267,7 @@ services:
       interval: 10s
       retries: 3
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../services/order-service/migrations:/app/services/order-service/migrations:delegated
     depends_on:
       - order-db

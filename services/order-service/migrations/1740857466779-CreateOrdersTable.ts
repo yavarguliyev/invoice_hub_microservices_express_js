@@ -7,11 +7,12 @@ export class CreateOrderTableMigration1740850299089 implements MigrationInterfac
         await queryRunner.query(`
             CREATE TABLE "orders" (
                 "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-                "userId" uuid NOT NULL,
+                "user_id" uuid NOT NULL,
                 "total_amount" decimal(10, 2) NOT NULL,
                 "status" varchar(64) NOT NULL,
                 "created_at" TIMESTAMP DEFAULT NOW(),
-                "updated_at" TIMESTAMP DEFAULT NOW()
+                "updated_at" TIMESTAMP DEFAULT NOW(),
+                "deleted_at" TIMESTAMP NULL
             );
         `);
     }

@@ -7,7 +7,7 @@ import { OrderStatus } from 'domain/enums/order-status.enum';
 
 @Entity(Entities.ORDER)
 export default class Order extends BaseEntity {
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', name: 'user_id' })
   @IsUUID()
   userId: string;
 

@@ -24,7 +24,7 @@
 	},
 	"keywords": [],
 	"dependencies": {
-		"@invoice-hub/common-packages": "*",
+		"@invoice-hub/common": "*",
 		"typeorm": "^0.3.20"
 	}
 }

@@ -1,6 +1,6 @@
 import { Container } from 'typedi';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, ErrorHandlerMiddleware, registerService } from '@invoice-hub/common-packages';
+import { ContainerHelper, GlobalErrorHandlerMiddleware, registerService } from '@invoice-hub/common';
 
 import { ApiService } from 'application/services/api.service';
 import { ContainerItems } from 'application/ioc/static/container-items';
@@ -16,7 +16,7 @@ export function configureInfrastructures () {
 };
 
 export function configureMiddlewares () {
-  Container.set(ErrorHandlerMiddleware, new ErrorHandlerMiddleware());
+  Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
 };
 
 export function configureControllersAndServices () {

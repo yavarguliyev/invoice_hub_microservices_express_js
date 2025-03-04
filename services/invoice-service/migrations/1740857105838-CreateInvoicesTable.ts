@@ -4,7 +4,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 @Service()
 export class CreateInvoicesTable1740857105838 implements MigrationInterface {
     public async up (queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+      await queryRunner.query(`
           CREATE TABLE "invoices" (
             "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             "order_id" UUID NOT NULL,
@@ -15,9 +15,10 @@ export class CreateInvoicesTable1740857105838 implements MigrationInterface {
             "status" VARCHAR(64) NOT NULL,
             "pdf_url" TEXT,
             "created_at" TIMESTAMP DEFAULT NOW(),
-            "updated_at" TIMESTAMP DEFAULT NOW()
+            "updated_at" TIMESTAMP DEFAULT NOW(),
+            "deleted_at" TIMESTAMP NULL
           );
-        `);
+      `);
     }
 
     public async down (queryRunner: QueryRunner): Promise<void> {

@@ -119,7 +119,7 @@ services:
     networks:
       - common
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../api-gateway/src:/app/api-gateway/src:delegated
     depends_on:
       - auth-db
@@ -152,7 +152,7 @@ services:
     networks:
       - common
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../services/auth-service/src:/app/services/auth-service/src:delegated
       - ../../services/auth-service/migrations:/app/services/auth-service/migrations:delegated
     depends_on:
@@ -183,7 +183,7 @@ services:
     networks:
       - common
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../services/invoice-service/src:/app/services/invoice-service/src:delegated
       - ../../services/invoice-service/migrations:/app/services/invoice-service/migrations:delegated
     depends_on:
@@ -213,7 +213,7 @@ services:
     networks:
       - common
     volumes:
-      - ../../packages:/app/packages
+      - ../../common:/app/common
       - ../../services/order-service/src:/app/services/order-service/src:delegated
       - ../../services/order-service/migrations:/app/services/order-service/migrations:delegated
     depends_on:

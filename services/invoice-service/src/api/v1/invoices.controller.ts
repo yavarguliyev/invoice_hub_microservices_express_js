@@ -1,5 +1,5 @@
-import { JsonController, Get } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute } from '@invoice-hub/common-packages';
+import { JsonController, Get, QueryParams } from 'routing-controllers';
+import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs } from '@invoice-hub/common';
 
 import { IInvoiceService } from 'application/services/invoice.service';
 import { ContainerItems } from 'application/ioc/static/container-items';
@@ -13,7 +13,7 @@ export class InvoicesController {
   }
 
   @Get('/')
-  async get () {
-    return await this.invoiceService.get();
+  async get (@QueryParams() query: GetQueryResultsArgs) {
+    return await this.invoiceService.get(query);
   }
 }

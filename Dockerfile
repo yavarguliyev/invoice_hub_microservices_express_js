@@ -7,12 +7,12 @@ COPY ../../yarn.lock /app/
 
 RUN yarn install --frozen-lockfile
 
-WORKDIR /app/packages
+WORKDIR /app/common
 
-COPY ../../packages/package.json /app/packages/
-COPY ../../packages/tsconfig.json /app/packages/
-COPY ../../packages/.eslintrc.json /app/packages/
-COPY ../../packages/src /app/packages/src/
+COPY ../../common/package.json /app/common/
+COPY ../../common/tsconfig.json /app/common/
+COPY ../../common/.eslintrc.json /app/common/
+COPY ../../common/src /app/common/src/
 
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
@@ -32,12 +32,12 @@ WORKDIR /app
 COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 
-WORKDIR /app/packages
+WORKDIR /app/common
 
-COPY --from=builder /app/packages/package.json /app/packages/
-COPY --from=builder /app/packages/tsconfig.json /app/packages/
-COPY --from=builder /app/packages/.eslintrc.json /app/packages/
-COPY --from=builder /app/packages/src /app/packages/src/
+COPY --from=builder /app/common/package.json /app/common/
+COPY --from=builder /app/common/tsconfig.json /app/common/
+COPY --from=builder /app/common/.eslintrc.json /app/common/
+COPY --from=builder /app/common/src /app/common/src/
 COPY --from=builder /app/yarn.lock /app/yarn.lock
 
 RUN apk add --no-cache python3 make g++

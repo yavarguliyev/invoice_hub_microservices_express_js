@@ -2,7 +2,7 @@
   "name": "invoice-hub",
   "private": true,
   "workspaces": {
-    "packages": ["api-gateway", "packages", "services/*"],
+    "packages": ["api-gateway", "common", "services/*"],
     "nohoist": [
       "**/typeorm/**",
       "**/typeorm",

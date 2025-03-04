@@ -1,8 +1,9 @@
-import { Get, JsonController, Post } from 'routing-controllers';
-import { createVersionedRoute, ContainerHelper } from '@invoice-hub/common-packages';
+import { Body, Get, HeaderParam, JsonController, Post } from 'routing-controllers';
+import { createVersionedRoute, ContainerHelper } from '@invoice-hub/common';
 
 import { ContainerItems } from 'application/ioc/static/container-items';
 import { IAuthService } from 'application/services/auth.service';
+import { SigninArgs } from 'core/inputs/signin.args';
 
 @JsonController(createVersionedRoute({ controllerPath: '/auth', version: 'v1' }))
 export class AuthController {
@@ -13,17 +14,17 @@ export class AuthController {
   }
 
   @Get('/')
-  async get () {
+  async get() {
     return await this.authService.get();
   }
 
   @Post('/signin')
-  async signin () {
-    return await this.authService.signin();
+  async signin (@Body() args: SigninArgs) {
+    return await this.authService.signin(args);
   }
 
-  @Post('/signup')
-  async signup () {
-    return await this.authService.signup();
+  @Post('/signout')
+  async signout (@HeaderParam('authorization') accesToken: string) {
+    return await this.authService.signout(accesToken);
   }
 }

@@ -1,6 +1,6 @@
 import { createExpressServer } from 'routing-controllers';
 import { Express } from 'express';
-import { ErrorHandlerMiddleware } from '@invoice-hub/common-packages';
+import { globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError } from '@invoice-hub/common';
 
 import { OrdersController } from 'api/v1/orders.controller';
 
@@ -10,8 +10,6 @@ export interface IExpressServerInfrastructure {
 
 export class ExpressServerInfrastructure implements IExpressServerInfrastructure {
   private server?: Express;
-
-  public constructor () {}
 
   public async get (): Promise<Express> {
     if (!this.server) {
@@ -26,9 +24,15 @@ export class ExpressServerInfrastructure implements IExpressServerInfrastructure
 
     const app = createExpressServer({
       controllers,
-      middlewares: [ErrorHandlerMiddleware],
+      middlewares: [GlobalErrorHandlerMiddleware],
       defaultErrorHandler: false
     });
+
+    app.all('*', (req: Request) => {
+      throw new NotFoundError(`Cannot find ${req.method} on ${req.url}`);
+    });
+
+    app.use(globalErrorHandler);
 
     return app;
   }

@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 
-import { getDataSourceConfig } from 'configs/datasource.config';
+import { getDataSourceConfig } from 'core/configs/datasource.config';
 
 export class DbConnectionInfrastructure {
   private static dataSource?: DataSource;

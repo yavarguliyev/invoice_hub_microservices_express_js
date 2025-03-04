@@ -1,15 +1,12 @@
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import http from 'http';
-import {
-  KafkaInfrastructure,
-  GracefulShutdownHelper,
-  LoggerTracerInfrastructure,
-  handleProcessSignals
-} from '@invoice-hub/common-packages';
+import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals } from '@invoice-hub/common';
 
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
 import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices, configureMiddlewares, configureRepositories } from 'application/ioc/bindings';
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { appConfig } from 'core/configs/app.config';
 
 config();
 
@@ -31,15 +28,15 @@ const initializeServer = async (): Promise<http.Server> => {
   const app = await expressServer.get();
   const server = http.createServer(app);
 
-  server.keepAliveTimeout = Number(process.env.KEEP_ALIVE_TIMEOUT);
-  server.headersTimeout = Number(process.env.HEADERS_TIMEOUT);
+  server.keepAliveTimeout = appConfig.KEEP_ALIVE_TIMEOUT;
+  server.headersTimeout = appConfig.HEADERS_TIMEOUT;
 
   return server;
 };
 
 const startServer = (httpServer: http.Server, port: number): void => {
   httpServer.listen(port, () => LoggerTracerInfrastructure.log(`Invoice service running on port ${port}`, 'info'));
-  httpServer.timeout = parseInt(process.env.SERVER_TIMEOUT!);
+  httpServer.timeout = appConfig.SERVER_TIMEOUT;
 };
 
 const main = async (): Promise<void> => {
@@ -48,7 +45,7 @@ const main = async (): Promise<void> => {
     await initializeInfrastructureServices();
 
     const appServer = await initializeServer();
-    const port = Number(process.env.PORT);
+    const port = appConfig.PORT;
 
     startServer(appServer, port);
 

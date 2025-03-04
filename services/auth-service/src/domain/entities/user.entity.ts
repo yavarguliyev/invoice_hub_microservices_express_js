@@ -1,6 +1,6 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { Length, IsEmail, IsString } from 'class-validator';
-import { PasswordStrengthDecorator } from '@invoice-hub/common-packages';
+import { PasswordStrengthDecorator } from '@invoice-hub/common';
 import bcrypt from 'bcrypt';
 
 import { Entities } from 'domain/enums/entities.enum';
@@ -36,7 +36,7 @@ export default class User extends BaseEntity {
     this.password = await bcrypt.hash(this.password, 10);
   }
 
-  @ManyToOne(() => Role, (role) => role.users, { eager: true })
+  @ManyToOne(() => Role, (role) => role.users, { lazy: true })
   @JoinColumn({ name: 'role_id' })
   role: Role;
 }

@@ -7,11 +7,11 @@ import { InvoiceStatus } from 'domain/enums/invoice-status.enum';
 
 @Entity(Entities.INVOICE)
 export default class Invoice extends BaseEntity {
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', name: 'order_id' })
   @IsUUID()
   orderId: string;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', name: 'user_id' })
   @IsUUID()
   userId: string;
 
@@ -33,7 +33,7 @@ export default class Invoice extends BaseEntity {
   @IsEnum(InvoiceStatus)
   status: InvoiceStatus;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', name: 'pdf_url', nullable: true })
   @IsString()
   @IsOptional()
   pdfUrl?: string;

@@ -1,5 +1,5 @@
 import { Get, JsonController } from 'routing-controllers';
-import { ContainerHelper } from '@invoice-hub/common-packages';
+import { ContainerHelper } from '@invoice-hub/common';
 
 import { ContainerItems } from 'application/ioc/static/container-items';
 import { IApiService } from 'application/services/api.service';
