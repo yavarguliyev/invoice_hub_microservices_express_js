@@ -1,7 +1,7 @@
 import winston from 'winston';
 import { logCreator, logLevel, LogEntry } from 'kafkajs';
 
-import { LoggerTracerLevels } from '../core/types/logger-tracer.type';
+import { LoggerTracerLevels } from '../core';
 
 export class LoggerTracerInfrastructure {
   private static logger = winston.createLogger({

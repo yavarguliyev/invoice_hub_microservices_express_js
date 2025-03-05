@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { DataSourceOptions } from 'typeorm';
 
-import Order from 'domain/entities/order.entity';
+import { Order } from 'domain/entities/order.entity';
 
 dotenv.config();
 

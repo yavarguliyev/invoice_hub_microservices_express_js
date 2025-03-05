@@ -1,12 +1,11 @@
 import { Column, Entity } from 'typeorm';
 import { IsString, Length, IsNumber, IsEnum, IsUUID, IsOptional } from 'class-validator';
+import { Entities, InvoiceStatus } from '@invoice-hub/common';
 
-import { Entities } from 'domain/enums/entities.enum';
 import { BaseEntity } from 'domain/entities/base.entity';
-import { InvoiceStatus } from 'domain/enums/invoice-status.enum';
 
 @Entity(Entities.INVOICE)
-export default class Invoice extends BaseEntity {
+export class Invoice extends BaseEntity {
   @Column({ type: 'uuid', name: 'order_id' })
   @IsUUID()
   orderId: string;

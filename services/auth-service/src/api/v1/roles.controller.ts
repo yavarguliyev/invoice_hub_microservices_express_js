@@ -1,9 +1,9 @@
-import { JsonController, Get, QueryParams } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs } from '@invoice-hub/common';
+import { JsonController, Get, QueryParams, Authorized } from 'routing-controllers';
+import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, Roles, ContainerItems } from '@invoice-hub/common';
 
 import { IRoleService } from 'application/services/role.service';
-import { ContainerItems } from 'application/ioc/static/container-items';
 
+@Authorized([Roles.GlobalAdmin])
 @JsonController(createVersionedRoute({ controllerPath: '/roles', version: 'v1' }))
 export class RolesController {
   private roleService: IRoleService;

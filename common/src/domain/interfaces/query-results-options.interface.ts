@@ -1,6 +1,6 @@
 import { ObjectLiteral, Repository } from 'typeorm';
 
-import { GetQueryResultsArgs } from '../../core/inputs/get-query-results.args';
+import { GetQueryResultsArgs } from '../../core';
 
 export interface QueryResultsOptions<T extends ObjectLiteral, DTO, RelatedDTO = unknown> {
   repository: Repository<T>;

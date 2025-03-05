@@ -1,9 +1,8 @@
 import { config } from 'dotenv';
 import http from 'http';
 
-import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
 import { RetryHelper } from './retry.helper';
-import { KafkaInfrastructure } from '../../infrastructure/kafka/kafka.infrastructure';
+import { LoggerTracerInfrastructure, KafkaInfrastructure } from '../../infrastructure';
 
 config();
 

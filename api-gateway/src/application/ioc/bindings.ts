@@ -1,11 +1,10 @@
 import { Container } from 'typedi';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, GlobalErrorHandlerMiddleware, registerService } from '@invoice-hub/common';
+import { ContainerHelper, GlobalErrorHandlerMiddleware, registerService, ContainerItems } from '@invoice-hub/common';
 
-import { ApiService } from 'application/services/api.service';
-import { ContainerItems } from 'application/ioc/static/container-items';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { ApiGatewayController } from 'api/v1/api-gateway.controller';
+import { ApiService } from 'application/services/api.service';
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 export function configureContainers () {
   routingControllersUseContainer(Container);

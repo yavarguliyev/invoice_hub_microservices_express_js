@@ -22,6 +22,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/application/helpers/auth-strategies.helper"],
   "exclude": ["node_modules"]
 }

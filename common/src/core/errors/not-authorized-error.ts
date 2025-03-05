@@ -1,5 +1,5 @@
 import { CustomError } from './custom-error';
-import { NotAuthorizedDetails } from '../../domain/interfaces/not-authorized-details.interface';
+import { NotAuthorizedDetails } from '../../domain';
 
 class NotAuthorizedError extends CustomError<NotAuthorizedDetails> {
   statusCode = 401;

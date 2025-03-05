@@ -1,8 +1,6 @@
-import { Kafka, logLevel } from 'kafkajs';
+import { Kafka } from 'kafkajs';
 
-import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
-import { KafkaProducerInfrastructure } from './kafka-producer.infrastructure';
-import { KafkaConsumerInfrastructure } from './kafka-consumer.infrastructure';
+import { LoggerTracerInfrastructure, KafkaProducerInfrastructure, KafkaConsumerInfrastructure } from '../';
 
 export class KafkaInfrastructure {
   private static kafka?: Kafka;

@@ -1,5 +1,5 @@
 import { Kafka, Consumer } from 'kafkajs';
-import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
+import { LoggerTracerInfrastructure } from '../';
 
 export class KafkaConsumerInfrastructure {
   private consumer: Consumer;

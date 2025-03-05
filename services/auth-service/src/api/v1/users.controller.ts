@@ -1,8 +1,7 @@
-import { JsonController, HttpCode, Post, Get, QueryParams } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs } from '@invoice-hub/common';
+import { JsonController, HttpCode, Post, Get, QueryParams, Authorized } from 'routing-controllers';
+import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, Roles, ContainerItems } from '@invoice-hub/common';
 
 import { IUserService } from 'application/services/user.service';
-import { ContainerItems } from 'application/ioc/static/container-items';
 
 @JsonController(createVersionedRoute({ controllerPath: '/users', version: 'v1' }))
 export class UsersController {
@@ -12,11 +11,13 @@ export class UsersController {
     this.userService = ContainerHelper.get<IUserService>(ContainerItems.IUserService);
   }
 
+  @Authorized([Roles.GlobalAdmin, Roles.Admin])
   @Get('/')
   async get (@QueryParams() query: GetQueryResultsArgs) {
     return await this.userService.get(query);
   }
 
+  @Authorized([Roles.Standard])
   @HttpCode(201)
   @Post('/create-order')
   async createOrder () {

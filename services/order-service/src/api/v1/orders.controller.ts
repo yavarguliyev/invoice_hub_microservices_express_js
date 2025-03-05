@@ -1,7 +1,6 @@
 import { JsonController, Get, QueryParams } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs } from '@invoice-hub/common';
+import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, ContainerItems } from '@invoice-hub/common';
 
-import { ContainerItems } from 'application/ioc/static/container-items';
 import { IOrderService } from 'application/services/order.service';
 
 @JsonController(createVersionedRoute({ controllerPath: '/orders', version: 'v1' }))

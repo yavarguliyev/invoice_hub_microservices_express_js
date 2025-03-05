@@ -1,5 +1,5 @@
-import { RetryOptions } from '../../domain/interfaces/retry-options.interface';
-import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
+import { RetryOptions } from '../../domain';
+import { LoggerTracerInfrastructure } from '../../infrastructure';
 
 export class RetryHelper {
   static async executeWithRetry<T> (fn: () => Promise<T>, { serviceName, maxRetries, retryDelay } : RetryOptions): Promise<T> {

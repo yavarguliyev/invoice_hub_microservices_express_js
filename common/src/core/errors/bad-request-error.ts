@@ -1,5 +1,5 @@
 import { CustomError } from './custom-error';
-import { BadRequestDetails } from '../../domain/interfaces/bad-request-details.interface';
+import { BadRequestDetails } from '../../domain';
 
 class BadRequestError extends CustomError<BadRequestDetails> {
   statusCode = 400;

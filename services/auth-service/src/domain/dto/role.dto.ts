@@ -1,6 +1,5 @@
 import { Expose } from 'class-transformer';
-
-import { Roles } from 'domain/enums/roles.enum';
+import { Roles } from '@invoice-hub/common';
 
 export class RoleDto {
   @Expose()

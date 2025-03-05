@@ -1,8 +1,10 @@
 import { createExpressServer } from 'routing-controllers';
 import { Express } from 'express';
-import { AuthStrategiesInfrastructure, globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError } from '@invoice-hub/common';
 import session from 'express-session';
 import passport from 'passport';
+import {
+  authorizationChecker, AuthStrategiesInfrastructure, globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError
+} from '@invoice-hub/common';
 
 import { AuthController } from 'api/v1/auth.controller';
 import { RolesController } from 'api/v1/roles.controller';
@@ -35,6 +37,7 @@ export class ExpressServerInfrastructure implements IExpressServerInfrastructure
     const app = createExpressServer({
       controllers,
       middlewares: [GlobalErrorHandlerMiddleware],
+      authorizationChecker,
       defaultErrorHandler: false
     });
 

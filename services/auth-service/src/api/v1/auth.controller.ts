@@ -1,7 +1,6 @@
 import { Body, Get, HeaderParam, JsonController, Post } from 'routing-controllers';
-import { createVersionedRoute, ContainerHelper } from '@invoice-hub/common';
+import { createVersionedRoute, ContainerHelper, ContainerItems } from '@invoice-hub/common';
 
-import { ContainerItems } from 'application/ioc/static/container-items';
 import { IAuthService } from 'application/services/auth.service';
 import { SigninArgs } from 'core/inputs/signin.args';
 
@@ -14,7 +13,7 @@ export class AuthController {
   }
 
   @Get('/')
-  async get() {
+  async get () {
     return await this.authService.get();
   }
 

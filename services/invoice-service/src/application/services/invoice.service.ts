@@ -1,8 +1,8 @@
 import { Container } from 'typedi';
 import { GetQueryResultsArgs, KafkaInfrastructure, LoggerTracerInfrastructure, queryResults, ResponseResults, ResultMessage } from '@invoice-hub/common';
 
-import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 import { InvoiceDto } from 'domain/dto/invoice.dto';
+import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 
 export interface IInvoiceService {
   initialize (): Promise<void>;

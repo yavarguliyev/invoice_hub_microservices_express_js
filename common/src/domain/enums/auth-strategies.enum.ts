@@ -1,5 +1,3 @@
-enum AuthStrategyType {
+export enum AuthStrategyType {
   JWT = 'JWT'
 };
-
-export default AuthStrategyType;

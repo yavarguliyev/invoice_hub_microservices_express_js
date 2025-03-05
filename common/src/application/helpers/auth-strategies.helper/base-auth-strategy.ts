@@ -1,6 +1,6 @@
 import { Strategy } from 'passport-jwt';
 
-import AuthStrategyType from '../../../domain/enums/auth-strategies.enum';
+import { AuthStrategyType } from '../../../domain';
 
 export interface IBaseAuthStrategy {
   isTypeOfAuthStrategy (options: AuthStrategyType): boolean;

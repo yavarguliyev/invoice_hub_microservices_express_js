@@ -1,4 +1,4 @@
-import { Version } from '../../core/types/version-control.type';
+import { Version } from '../../core';
 
 export interface CreateVersionedRouteOptions {
   controllerPath: string;

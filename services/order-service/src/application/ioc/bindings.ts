@@ -1,14 +1,13 @@
 import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, GlobalErrorHandlerMiddleware, registerService } from '@invoice-hub/common';
+import { ContainerHelper, GlobalErrorHandlerMiddleware, registerService, ContainerItems } from '@invoice-hub/common';
 
-import { ContainerItems } from 'application/ioc/static/container-items';
-import { IOrderService, OrderService } from 'application/services/order.service';
 import { OrdersController } from 'api/v1/orders.controller';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { IOrderService, OrderService } from 'application/services/order.service';
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
-import Order from 'domain/entities/order.entity';
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { Order } from 'domain/entities/order.entity';
 import { OrderRepository } from 'domain/repositories/order.repository';
 
 export function configureContainers () {

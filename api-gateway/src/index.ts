@@ -3,10 +3,10 @@ import { config } from 'dotenv';
 import http from 'http';
 import { LoggerTracerInfrastructure, handleProcessSignals } from '@invoice-hub/common';
 
-import { configureContainers, configureControllersAndServices, configureInfrastructures, configureMiddlewares } from 'application/ioc/bindings';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { configureContainers, configureControllersAndServices, configureInfrastructures, configureMiddlewares } from 'application/ioc/bindings';
 import { appConfig } from 'core/configs/app.config';
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 config();
 

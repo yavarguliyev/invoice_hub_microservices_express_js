@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import { DataSourceOptions } from 'typeorm';
 
-import User from 'domain/entities/user.entity';
-import Role from 'domain/entities/role.entity';
+import { Role } from 'domain/entities/role.entity';
+import { User } from 'domain/entities/user.entity';
 
 dotenv.config();
 
@@ -13,7 +13,7 @@ export const baseConfig: DataSourceOptions = {
   username: process.env.DB_DEFAULT_USERNAME,
   password: process.env.DB_DEFAULT_PASSWORD,
   database: process.env.DB_DEFAULT_DATABASE,
-  entities: [User, Role],
+  entities: [Role, User],
   synchronize: false,
   logging: false,
   subscribers: []

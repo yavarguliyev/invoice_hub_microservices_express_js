@@ -1,4 +1,4 @@
-import { ResultMessage } from '../../domain/enums/result-message.enum';
+import { ResultMessage } from '../../domain';
 
 export type ResponseResults<T> = {
   payloads?: T[];

@@ -1,12 +1,20 @@
-export interface TokenPayload {
-  id: number;
-  email: string;
-  role: string;
-};
+import { Request, Response } from 'express';
 
 export interface JwtPayload {
-  sub: string;
+  id: string;
   email: string;
+  role: string;
   iat?: number;
   exp?: number;
+};
+
+export interface AuthenticationInfo {
+  info?: object | string | Array<string | undefined>
+};
+
+export interface ExpressContext {
+  request: Request;
+  response?: Response;
+  tokenData: JwtPayload;
+  token: string;
 };

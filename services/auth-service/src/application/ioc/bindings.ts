@@ -1,21 +1,20 @@
 import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, registerService, GlobalErrorHandlerMiddleware } from '@invoice-hub/common';
+import { ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems } from '@invoice-hub/common';
 
-import { ContainerItems } from 'application/ioc/static/container-items';
-import { IAuthService, AuthService } from 'application/services/auth.service';
-import { RoleService } from 'application/services/role.service';
-import { IUserService, UserService } from 'application/services/user.service';
 import { AuthController } from 'api/v1/auth.controller';
 import { RolesController } from 'api/v1/roles.controller';
 import { UsersController } from 'api/v1/users.controller';
+import { IAuthService, AuthService } from 'application/services/auth.service';
+import { RoleService } from 'application/services/role.service';
+import { IUserService, UserService } from 'application/services/user.service';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
-import User from 'domain/entities/user.entity';
-import { UserRepository } from 'domain/repositories/user.repository';
-import Role from 'domain/entities/role.entity';
+import { Role } from 'domain/entities/role.entity';
+import { User } from 'domain/entities/user.entity';
 import { RoleRepository } from 'domain/repositories/role.repository';
+import { UserRepository } from 'domain/repositories/user.repository';
 
 export function configureContainers () {
   typeormUseContainer(Container);

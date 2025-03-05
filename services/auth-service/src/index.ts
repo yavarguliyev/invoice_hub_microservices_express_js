@@ -4,9 +4,11 @@ import http from 'http';
 import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals } from '@invoice-hub/common';
 
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
-import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices, configureMiddlewares, configureRepositories } from 'application/ioc/bindings';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import {
+  configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices, configureMiddlewares, configureRepositories
+} from 'application/ioc/bindings';
 import { appConfig } from 'core/configs/app.config';
+import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 config();
 

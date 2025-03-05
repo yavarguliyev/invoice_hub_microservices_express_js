@@ -1,6 +1,5 @@
 import { Expose } from 'class-transformer';
-
-import { OrderStatus } from 'domain/enums/order-status.enum';
+import { OrderStatus } from '@invoice-hub/common';
 
 export class OrderDto {
   @Expose()

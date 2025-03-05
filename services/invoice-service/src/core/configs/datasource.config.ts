@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { DataSourceOptions } from 'typeorm';
 
-import Invoice from 'domain/entities/invoice.entity';
+import { Invoice } from 'domain/entities/invoice.entity';
 
 dotenv.config();
 

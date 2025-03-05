@@ -1,6 +1,6 @@
 import { Kafka, Producer, Partitioners } from 'kafkajs';
 
-import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
+import { LoggerTracerInfrastructure } from '../';
 
 export class KafkaProducerInfrastructure {
   private producer: Producer;

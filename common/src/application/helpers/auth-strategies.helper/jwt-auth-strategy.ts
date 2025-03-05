@@ -1,12 +1,7 @@
 import { ExtractJwt, Strategy, StrategyOptionsWithoutRequest, VerifiedCallback } from 'passport-jwt';
 
 import { BaseAuthStrategy } from './base-auth-strategy';
-import AuthStrategyType from '../../../domain/enums/auth-strategies.enum';
-import { JwtPayload } from '../../../domain/interfaces/express-context.interface';
-
-export interface IBaseAuthStrategy {
-  isTypeOfAuthStrategy (options: AuthStrategyType): boolean;
-};
+import { AuthStrategyType, JwtPayload } from '../../../domain';
 
 export class JwtAuthStrategy extends BaseAuthStrategy {
   currentStrategy: AuthStrategyType = AuthStrategyType.JWT;
@@ -16,6 +11,6 @@ export class JwtAuthStrategy extends BaseAuthStrategy {
   }
 
   private jwtStrategyOptions (): StrategyOptionsWithoutRequest {
-    return { jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: process.env.JWT_SECRET_KEY! };
+    return { jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: process.env.JWT_SECRET_KEY!, algorithms: ['HS256'] };
   }
 };

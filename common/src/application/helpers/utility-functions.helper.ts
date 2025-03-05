@@ -1,11 +1,8 @@
 import { ObjectLiteral } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 
-import { HandleProcessSignalsOptions } from '../../domain/interfaces/handle-process-signals-options.interface';
-import { CreateVersionedRouteOptions } from '../../domain/interfaces/create-versioned-route-options.interface';
-import { ContainerHelper } from '../ioc/helpers/container.helper';
-import { RegisterServiceOptions } from '../../domain/interfaces/register-service-options.interface';
-import { QueryResultsOptions } from '../../domain/interfaces/query-results-options.interface';
+import { ContainerHelper } from '../';
+import { HandleProcessSignalsOptions, CreateVersionedRouteOptions, RegisterServiceOptions, QueryResultsOptions } from '../../domain';
 
 export const handleProcessSignals = <Args extends unknown[]> ({ shutdownCallback, callbackArgs }: HandleProcessSignalsOptions<Args>): void => {
   ['SIGINT', 'SIGTERM', 'SIGUSR2'].forEach(signal => process.on(signal, async () => await shutdownCallback(...callbackArgs)));
