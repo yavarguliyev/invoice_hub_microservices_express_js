@@ -1,11 +1,12 @@
-import { BaseGracefulShutdownHelper, KafkaInfrastructure, LoggerTracerInfrastructure, RetryHelper } from '@invoice-hub/common';
-
-import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
+import {
+  BaseGracefulShutdownHelper, KafkaInfrastructure, LoggerTracerInfrastructure, RetryHelper, DbConnectionInfrastructure,
+  DBServicesName
+} from '@invoice-hub/common';
 
 export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
   protected static async disconnectServices (): Promise<void> {
     const disconnectPromises = [
-      RetryHelper.executeWithRetry(() => DbConnectionInfrastructure.disconnect(), {
+      RetryHelper.executeWithRetry(() => DbConnectionInfrastructure.disconnect(DBServicesName.INVOICE_SERVICE), {
         serviceName: 'Database',
         maxRetries: this.maxRetries,
         retryDelay: this.retryDelay,

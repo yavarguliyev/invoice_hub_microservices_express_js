@@ -1,7 +1,9 @@
 import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
-import { ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems } from '@invoice-hub/common';
+import {
+  ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems, DbConnectionInfrastructure, getDataSourceConfig, DBServicesName
+} from '@invoice-hub/common';
 
 import { AuthController } from 'api/v1/auth.controller';
 import { RolesController } from 'api/v1/roles.controller';
@@ -10,7 +12,6 @@ import { AuthService } from 'application/services/auth.service';
 import { RoleService } from 'application/services/role.service';
 import { UserService } from 'application/services/user.service';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
-import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
 import { Role } from 'domain/entities/role.entity';
 import { User } from 'domain/entities/user.entity';
 import { RoleRepository } from 'domain/repositories/role.repository';
@@ -22,7 +23,7 @@ export function configureContainers () {
 };
 
 export async function configureRepositories () {
-  const dataSource = await DbConnectionInfrastructure.create();
+  const dataSource = await DbConnectionInfrastructure.create({ serviceName: DBServicesName.AUTH_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Role, User]) });
   await dataSource.initialize();
 
   Container.set(RoleRepository, dataSource.getRepository(Role));
