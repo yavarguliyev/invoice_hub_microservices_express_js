@@ -1,13 +1,17 @@
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import http from 'http';
-import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals } from '@invoice-hub/common';
+import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds } from '@invoice-hub/common';
 
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
 import {
-  configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices, configureMiddlewares, configureRepositories
+  configureContainers,
+  configureControllersAndServices,
+  configureInfrastructures,
+  configureKafkaServices,
+  configureMiddlewares,
+  configureRepositories
 } from 'application/ioc/bindings';
-import { appConfig } from 'core/configs/app.config';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 config();
@@ -21,7 +25,7 @@ const initializeDependencyInjections = async (): Promise<void> => {
 };
 
 const initializeInfrastructureServices = async (): Promise<void> => {
-  await KafkaInfrastructure.initialize();
+  await KafkaInfrastructure.initialize({ clientId: ClientIds.ORDER_SERVICE });
   await configureKafkaServices();
 };
 

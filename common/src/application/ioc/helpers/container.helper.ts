@@ -1,6 +1,6 @@
 import { Container, Constructable } from 'typedi';
 
-import { ContainerHelperDictionary } from '../../../application';
+import { ContainerHelperDictionary } from '../../ioc/types/container-helper-dictionary-item';
 
 export class ContainerHelper {
   private static dict: ContainerHelperDictionary = {};

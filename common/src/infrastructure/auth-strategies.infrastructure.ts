@@ -1,6 +1,7 @@
 import { Strategy } from 'passport-jwt';
 
-import { BaseAuthStrategy, JwtAuthStrategy } from '../application';
+import { BaseAuthStrategy } from '../application/helpers/auth-strategies.helper/base-auth-strategy';
+import { JwtAuthStrategy } from '../application/helpers/auth-strategies.helper/jwt-auth-strategy';
 import { AuthStrategyType } from '../domain';
 
 export class AuthStrategiesInfrastructure {

@@ -1,12 +1,11 @@
 import { Container } from 'typedi';
-import { KafkaInfrastructure, GetQueryResultsArgs, ResponseResults, queryResults, ResultMessage } from '@invoice-hub/common';
+import {
+  KafkaInfrastructure, GetQueryResultsArgs, ResponseResults, queryResults, ResultMessage, UserDto, RoleDto, Subjects
+} from '@invoice-hub/common';
 
-import { UserDto } from 'domain/dto/user.dto';
-import { RoleDto } from 'domain/dto/role.dto';
 import { UserRepository } from 'domain/repositories/user.repository';
 
 export interface IUserService {
-  initialize (): Promise<void>;
   get (query: GetQueryResultsArgs): Promise<ResponseResults<UserDto>>;
   createOrder (): Promise<ResponseResults<{ orderId: number }>>;
 }
@@ -29,17 +28,15 @@ export class UserService implements IUserService {
       }
     });
 
-    return { payloads, total, result: ResultMessage.SUCCEED };
+    return { payloads, total, result: ResultMessage.SUCCESS };
   }
-
-  async initialize () {}
 
   async createOrder () {
     const orderId = Math.floor(Math.random() * 1000);
     const order = { totalAmount: 180.20 };
 
-    await KafkaInfrastructure.publish('order-created', JSON.stringify({ orderId, order }));
+    await KafkaInfrastructure.publish(Subjects.ORDER_CREATED, JSON.stringify({ orderId, order }));
 
-    return { result: ResultMessage.SUCCEED, payload: { orderId } };
+    return { result: ResultMessage.SUCCESS, payload: { orderId } };
   }
 }

@@ -1,7 +1,8 @@
 import { Container } from 'typedi';
-import { GetQueryResultsArgs, KafkaInfrastructure, LoggerTracerInfrastructure, queryResults, ResponseResults, ResultMessage } from '@invoice-hub/common';
+import {
+  GetQueryResultsArgs, GroupIds, InvoiceDto, KafkaInfrastructure, LoggerTracerInfrastructure, queryResults, ResponseResults, ResultMessage, Subjects
+} from '@invoice-hub/common';
 
-import { InvoiceDto } from 'domain/dto/invoice.dto';
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 
 export interface IInvoiceService {
@@ -18,13 +19,13 @@ export class InvoiceService implements IInvoiceService {
   }
 
   async initialize () {
-    await KafkaInfrastructure.subscribe('invoice-generate', this.handleInvoiceGeneration.bind(this), { groupId: 'invoice-service-group' });
+    await KafkaInfrastructure.subscribe(Subjects.INVOICE_GENERATE, this.handleInvoiceGeneration.bind(this), { groupId: GroupIds.INVOICE_SERVICE_GROUP });
   }
 
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.invoiceRepository, query, dtoClass: InvoiceDto });
 
-    return { payloads, total, result: ResultMessage.SUCCEED };
+    return { payloads, total, result: ResultMessage.SUCCESS };
   }
 
   async handleInvoiceGeneration (message: string) {

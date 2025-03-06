@@ -2,14 +2,16 @@ import { config } from 'dotenv';
 import http from 'http';
 
 import { RetryHelper } from './retry.helper';
-import { LoggerTracerInfrastructure, KafkaInfrastructure } from '../../infrastructure';
+import { appConfig } from '../../core/configs/app.config';
+import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
+import { KafkaInfrastructure } from '../../infrastructure/kafka/kafka.infrastructure';
 
 config();
 
 export abstract class BaseGracefulShutdownHelper {
-  protected static readonly shutdownTimeout = Number(process.env.SHUT_DOWN_TIMER);
-  protected static readonly maxRetries = Number(process.env.SHUTDOWN_RETRIES);
-  protected static readonly retryDelay = Number(process.env.SHUTDOWN_RETRY_DELAY);
+  protected static readonly shutdownTimeout = appConfig.SHUT_DOWN_TIMER;
+  protected static readonly maxRetries = appConfig.SHUTDOWN_RETRIES;
+  protected static readonly retryDelay = appConfig.SHUTDOWN_RETRY_DELAY;
 
   static async shutDown (httpServer: http.Server): Promise<void> {
     let shutdownTimer;

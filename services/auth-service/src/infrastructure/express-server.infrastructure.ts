@@ -3,13 +3,12 @@ import { Express } from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import {
-  authorizationChecker, AuthStrategiesInfrastructure, globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError
+  authorizationChecker, AuthStrategiesInfrastructure, currentUserChecker, globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError, passportConfig
 } from '@invoice-hub/common';
 
 import { AuthController } from 'api/v1/auth.controller';
 import { RolesController } from 'api/v1/roles.controller';
 import { UsersController } from 'api/v1/users.controller';
-import { passportConfig } from 'core/configs/passport.config';
 
 export interface IExpressServerInfrastructure {
   get(): Promise<Express>;
@@ -37,6 +36,7 @@ export class ExpressServerInfrastructure implements IExpressServerInfrastructure
     const app = createExpressServer({
       controllers,
       middlewares: [GlobalErrorHandlerMiddleware],
+      currentUserChecker,
       authorizationChecker,
       defaultErrorHandler: false
     });

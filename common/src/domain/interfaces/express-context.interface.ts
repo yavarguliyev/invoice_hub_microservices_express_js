@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 
+import { UserDto } from '../dto/user.dto';
+
 export interface JwtPayload {
-  id: string;
-  email: string;
-  role: string;
+  currentUser: UserDto
   iat?: number;
   exp?: number;
 };

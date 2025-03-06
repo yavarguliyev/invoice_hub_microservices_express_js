@@ -1,5 +1,5 @@
+import { UserDto } from '@invoice-hub/common';
+
 export type GenerateLoginResponse = {
-  id: string;
-  email: string;
-  role: string;
+  currentUser: UserDto;
 }

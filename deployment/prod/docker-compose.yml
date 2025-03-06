@@ -16,9 +16,6 @@ services:
       - api-gateway
     command: >
       sh -c "until curl --silent --head --fail http://api-gateway:3000; do echo 'Waiting for api-gateway...'; sleep 5; done &&
-            until curl --silent --head --fail http://auth-service:4001/api/v1/auth; do echo 'Waiting for auth-service...'; sleep 5; done &&
-            until curl --silent --head --fail http://invoice-service:4002/api/v1/invoices; do echo 'Waiting for invoice-service...'; sleep 5; done &&
-            until curl --silent --head --fail http://order-service:4003/api/v1/orders; do echo 'Waiting for order-service...'; sleep 5; done &&
             nginx -g 'daemon off;'"
 
   zookeeper:

@@ -1,4 +1,4 @@
-import { Body, Get, HeaderParam, JsonController, Post } from 'routing-controllers';
+import { Body, HeaderParam, JsonController, Post } from 'routing-controllers';
 import { createVersionedRoute, ContainerHelper, ContainerItems } from '@invoice-hub/common';
 
 import { IAuthService } from 'application/services/auth.service';
@@ -10,11 +10,6 @@ export class AuthController {
 
   constructor () {
     this.authService = ContainerHelper.get<IAuthService>(ContainerItems.IAuthService);
-  }
-
-  @Get('/')
-  async get () {
-    return await this.authService.get();
   }
 
   @Post('/signin')

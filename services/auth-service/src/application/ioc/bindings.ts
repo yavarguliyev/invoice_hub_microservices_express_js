@@ -6,9 +6,9 @@ import { ContainerHelper, registerService, GlobalErrorHandlerMiddleware, Contain
 import { AuthController } from 'api/v1/auth.controller';
 import { RolesController } from 'api/v1/roles.controller';
 import { UsersController } from 'api/v1/users.controller';
-import { IAuthService, AuthService } from 'application/services/auth.service';
+import { AuthService } from 'application/services/auth.service';
 import { RoleService } from 'application/services/role.service';
-import { IUserService, UserService } from 'application/services/user.service';
+import { UserService } from 'application/services/user.service';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
 import { Role } from 'domain/entities/role.entity';
@@ -46,14 +46,4 @@ export function configureControllersAndServices () {
     .registerController(AuthController)
     .registerController(RolesController)
     .registerController(UsersController);
-};
-
-export async function configureKafkaServices () {
-  const authService = ContainerHelper.get<IAuthService>(ContainerItems.IAuthService);
-  const userService = ContainerHelper.get<IUserService>(ContainerItems.IUserService);
-
-  await Promise.all([
-    authService.initialize(),
-    userService.initialize()
-  ]);
 };

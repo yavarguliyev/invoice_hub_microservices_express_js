@@ -1,10 +1,9 @@
-import { ResultMessage } from '@invoice-hub/common';
+import { ResultMessage, UserDto } from '@invoice-hub/common';
 
 export type LoginResponse = {
   accessToken: string;
   payload: {
-    id: string,
-    email: string
+    currentUser: UserDto
   };
   results: ResultMessage;
 }

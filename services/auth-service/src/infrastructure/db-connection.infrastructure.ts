@@ -1,13 +1,15 @@
 import { DataSource } from 'typeorm';
+import { getDataSourceConfig } from '@invoice-hub/common';
 
-import { getDataSourceConfig } from 'core/configs/datasource.config';
+import { User } from 'domain/entities/user.entity';
+import { Role } from 'domain/entities/role.entity';
 
 export class DbConnectionInfrastructure {
   private static dataSource?: DataSource;
 
   static create (): DataSource {
     if (!this.dataSource) {
-      this.dataSource = new DataSource(getDataSourceConfig());
+      this.dataSource = new DataSource(getDataSourceConfig(false, [User, Role]));
     }
 
     return this.dataSource;

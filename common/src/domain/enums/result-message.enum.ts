@@ -1,4 +1,4 @@
 export enum ResultMessage {
-  SUCCEED = 'SUCCEED',
-  ERROR = 'ERROR'
-};
+  SUCCESS = 'success',
+  ERROR = 'error'
+}

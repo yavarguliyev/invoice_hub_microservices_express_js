@@ -1,4 +1,4 @@
-import { BaseGracefulShutdownHelper, LoggerTracerInfrastructure, RetryHelper } from '@invoice-hub/common';
+import { BaseGracefulShutdownHelper, KafkaInfrastructure, LoggerTracerInfrastructure, RetryHelper } from '@invoice-hub/common';
 
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
 
@@ -11,6 +11,14 @@ export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
         retryDelay: this.retryDelay,
         onRetry: (attempt) => {
           LoggerTracerInfrastructure.log(`Retrying Database disconnect, attempt ${attempt}`);
+        }
+      }),
+      RetryHelper.executeWithRetry(() => KafkaInfrastructure.disconnect(), {
+        serviceName: 'Kafka',
+        maxRetries: this.maxRetries,
+        retryDelay: this.retryDelay,
+        onRetry: (attempt) => {
+          LoggerTracerInfrastructure.log(`Retrying Kafka disconnect, attempt ${attempt}`);
         }
       })
     ];

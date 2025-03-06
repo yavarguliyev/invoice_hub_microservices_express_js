@@ -1,10 +1,9 @@
 import { createExpressServer } from 'routing-controllers';
 import { Express, Request } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError } from '@invoice-hub/common';
+import { globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError, appConfig } from '@invoice-hub/common';
 
 import { ApiGatewayController } from 'api/v1/api-gateway.controller';
-import { appConfig } from 'core/configs/app.config';
 
 export interface IExpressServerInfrastructure {
   get(): Promise<Express>;

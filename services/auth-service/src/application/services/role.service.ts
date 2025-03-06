@@ -1,7 +1,6 @@
 import { Container } from 'typedi';
-import { GetQueryResultsArgs, queryResults, ResponseResults, ResultMessage } from '@invoice-hub/common';
+import { GetQueryResultsArgs, queryResults, ResponseResults, ResultMessage, RoleDto } from '@invoice-hub/common';
 
-import { RoleDto } from 'domain/dto/role.dto';
 import { RoleRepository } from 'domain/repositories/role.repository';
 
 export interface IRoleService {
@@ -18,6 +17,6 @@ export class RoleService implements IRoleService {
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.roleRepository, query, dtoClass: RoleDto });
 
-    return { payloads, total, result: ResultMessage.SUCCEED };
+    return { payloads, total, result: ResultMessage.SUCCESS };
   }
 }

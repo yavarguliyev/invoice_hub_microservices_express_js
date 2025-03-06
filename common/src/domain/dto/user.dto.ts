@@ -1,10 +1,11 @@
 import { Expose } from 'class-transformer';
-import { Roles } from '@invoice-hub/common';
 
-export class RoleDto {
+import { RoleDto } from './role.dto';
+
+export class UserDto {
   @Expose()
   id: number;
 
   @Expose()
-  name: Roles;
+  role: RoleDto;
 }

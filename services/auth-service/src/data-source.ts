@@ -1,5 +1,7 @@
 import { DataSource } from 'typeorm';
+import { getDataSourceConfig } from '@invoice-hub/common';
 
-import { getDataSourceConfig } from 'core/configs/datasource.config';
+import { User } from 'domain/entities/user.entity';
+import { Role } from 'domain/entities/role.entity';
 
-export const AppDataSource = new DataSource(getDataSourceConfig(true));
+export const AppDataSource = new DataSource(getDataSourceConfig(true, [User, Role]));

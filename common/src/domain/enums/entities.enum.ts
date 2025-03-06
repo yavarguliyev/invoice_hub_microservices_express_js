@@ -3,4 +3,4 @@ export enum Entities {
   ROLE = 'roles',
   INVOICE = 'invoices',
   ORDER = 'orders'
-};
+}

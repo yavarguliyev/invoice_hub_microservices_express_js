@@ -1,14 +1,14 @@
-import 'reflect-metadata';
 import { DataSource } from 'typeorm';
+import { getDataSourceConfig } from '@invoice-hub/common';
 
-import { getDataSourceConfig } from 'core/configs/datasource.config';
+import { Order } from 'domain/entities/order.entity';
 
 export class DbConnectionInfrastructure {
   private static dataSource?: DataSource;
 
   static create (): DataSource {
     if (!this.dataSource) {
-      this.dataSource = new DataSource(getDataSourceConfig());
+      this.dataSource = new DataSource(getDataSourceConfig(false, [Order]));
     }
 
     return this.dataSource;

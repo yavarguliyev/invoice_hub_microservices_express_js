@@ -1,19 +1,23 @@
 import { Kafka } from 'kafkajs';
 
-import { LoggerTracerInfrastructure, KafkaProducerInfrastructure, KafkaConsumerInfrastructure } from '../';
+import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
+import { KafkaConsumerInfrastructure } from '../kafka/kafka-consumer.infrastructure';
+import { KafkaProducerInfrastructure } from '../kafka/kafka-producer.infrastructure';
+import { appConfig } from '../../core/configs/app.config';
+import { KafkaInitOptions } from '../../domain/interfaces/kafka-init-options.interface';
 
 export class KafkaInfrastructure {
   private static kafka?: Kafka;
   private static producer?: KafkaProducerInfrastructure;
   private static consumer?: KafkaConsumerInfrastructure;
 
-  static async initialize (): Promise<void> {
+  static async initialize ({ clientId }: KafkaInitOptions): Promise<void> {
     if (this.kafka) {
       return;
     }
 
-    const brokers = [process.env.KAFKA_BROKER!];
-    this.kafka = new Kafka({ clientId: 'my-app', brokers, logCreator: LoggerTracerInfrastructure.kafkaLogCreator });
+    const brokers = [appConfig.KAFKA_BROKER!];
+    this.kafka = new Kafka({ clientId, brokers, logCreator: LoggerTracerInfrastructure.kafkaLogCreator });
 
     this.producer = new KafkaProducerInfrastructure(this.kafka);
     this.consumer = new KafkaConsumerInfrastructure(this.kafka);

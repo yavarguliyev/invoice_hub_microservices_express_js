@@ -5,6 +5,7 @@ dotenv.config();
 export const appConfig = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: Number(process.env.PORT),
+  KAFKA_BROKER: process.env.KAFKA_BROKER,
   KEEP_ALIVE_TIMEOUT: Number(process.env.KEEP_ALIVE_TIMEOUT),
   HEADERS_TIMEOUT: Number(process.env.HEADERS_TIMEOUT),
   SERVER_TIMEOUT: Number(process.env.SERVER_TIMEOUT),

@@ -1,17 +1,15 @@
 import { Container } from 'typedi';
+import { plainToInstance } from 'class-transformer';
 import { compare } from 'bcrypt';
 import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
-import { LoggerTracerInfrastructure, NotAuthorizedError, ResponseResults, ResultMessage } from '@invoice-hub/common';
+import { LoggerTracerInfrastructure, NotAuthorizedError, ResultMessage, RoleDto, UserDto, passportConfig } from '@invoice-hub/common';
 
 import { SigninArgs } from 'core/inputs/signin.args';
 import { LoginResponse } from 'core/types/login-response.type';
 import { GenerateLoginResponse } from 'core/types/generate-login-response.type';
-import { passportConfig } from 'core/configs/passport.config';
 import { UserRepository } from 'domain/repositories/user.repository';
 
 export interface IAuthService {
-  initialize (): Promise<void>;
-  get (): Promise<ResponseResults<any>>;
   signin (args: SigninArgs): Promise<LoginResponse>;
   signout (accesToken: string): Promise<boolean>;
 }
@@ -23,33 +21,23 @@ export class AuthService implements IAuthService {
     this.userRepository = Container.get(UserRepository);
   }
 
-  async initialize () {}
-
-  async get () {
-    return { result: ResultMessage.SUCCEED };
-  }
-
   async signin (args: SigninArgs) {
     const { email, password } = args;
+
     const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
+    if (!user || !(await compare(password, user.password))) {
       throw new NotAuthorizedError();
     }
 
-    const passwordMatch = await compare(password, user.password);
-    if (!passwordMatch) {
-      throw new NotAuthorizedError();
-    }
+    const currentUser = plainToInstance(UserDto, user, { excludeExtraneousValues: true });
+    currentUser.role = plainToInstance(RoleDto, await user.role, { excludeExtraneousValues: true });
 
-    const role = await user.role;
-
-    return await this.generateLoginResponse({ id: user.id, email, role: role.name });
+    return await this.generateLoginResponse({ currentUser });
   }
 
   async signout (accesToken: string) {
     const token = accesToken?.split(' ')[1] ?? '';
-    const decoded = jwt.decode(token) as JwtPayload;
+    const decoded = jwt.verify(token, passportConfig.JWT_PRIVATE_KEY, { algorithms: ['HS256'] }) as JwtPayload;
 
     if (!decoded?.exp) {
       LoggerTracerInfrastructure.log('Signout failed: Invalid or malformed token', 'error');
@@ -58,7 +46,6 @@ export class AuthService implements IAuthService {
     }
 
     const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
-
     LoggerTracerInfrastructure.log(`User signed out. Token expires in ${expiresIn} seconds`, 'info');
 
     // Note: This does not actually invalidate the access token.
@@ -69,17 +56,17 @@ export class AuthService implements IAuthService {
     return true;
   }
 
-  private async generateLoginResponse ({ id, email, role }: GenerateLoginResponse) {
-    const payload = { id, email, role };
+  private async generateLoginResponse ({ currentUser }: GenerateLoginResponse) {
+    const payload = { currentUser };
 
-    const secretKey = passportConfig.JWT_SECRET_KEY;
+    const privateKey = passportConfig.JWT_PRIVATE_KEY;
     const expiresIn = passportConfig.JWT_EXPIRES_IN;
 
     const validatedExpiresIn = !isNaN(Number(expiresIn)) ? Number(expiresIn) : (expiresIn as SignOptions['expiresIn']);
 
     const signOptions: SignOptions = { expiresIn: validatedExpiresIn, algorithm: 'HS256' };
-    const accessToken = jwt.sign(payload, secretKey, signOptions);
-    const response: LoginResponse = { accessToken, payload, results: ResultMessage.SUCCEED };
+    const accessToken = jwt.sign(payload, privateKey, signOptions);
+    const response: LoginResponse = { accessToken, payload, results: ResultMessage.SUCCESS };
 
     return response;
   }

@@ -1,6 +1,10 @@
 import { createExpressServer } from 'routing-controllers';
 import { Express } from 'express';
-import { globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError } from '@invoice-hub/common';
+import session from 'express-session';
+import passport from 'passport';
+import {
+  authorizationChecker, AuthStrategiesInfrastructure, currentUserChecker, globalErrorHandler, GlobalErrorHandlerMiddleware, NotFoundError, passportConfig
+} from '@invoice-hub/common';
 
 import { InvoicesController } from 'api/v1/invoices.controller';
 
@@ -22,11 +26,22 @@ export class ExpressServerInfrastructure implements IExpressServerInfrastructure
   private createServer (): Express {
     const controllers = [InvoicesController];
 
+    const authStrategies = AuthStrategiesInfrastructure.buildStrategies();
+    for (const strategy of authStrategies) {
+      passport.use(strategy);
+    }
+
     const app = createExpressServer({
       controllers,
       middlewares: [GlobalErrorHandlerMiddleware],
+      currentUserChecker,
+      authorizationChecker,
       defaultErrorHandler: false
     });
+
+    app.use(session({ secret: passportConfig.PASSPORT_JS_SESSION_SECRET_KEY, resave: false, saveUninitialized: false }));
+    app.use(passport.initialize());
+    app.use(passport.session());
 
     app.all('*', (req: Request) => {
       throw new NotFoundError(`Cannot find ${req.method} on ${req.url}`);

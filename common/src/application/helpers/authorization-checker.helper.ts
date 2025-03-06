@@ -1,8 +1,8 @@
 import { Action } from 'routing-controllers';
 import passport from 'passport';
 
-import { NotAuthorizedError } from '../../core';
-import { AuthenticationInfo, JwtPayload } from '../../domain';
+import { NotAuthorizedError } from '../../core/errors/not-authorized-error';
+import { JwtPayload, AuthenticationInfo } from '../../domain/interfaces/express-context.interface';
 
 export const getTokenData = (req: Request): Promise<JwtPayload> =>
   new Promise((resolve, reject) => {
@@ -11,7 +11,7 @@ export const getTokenData = (req: Request): Promise<JwtPayload> =>
       if (!payload || (payload.exp && Date.now() >= payload.exp * 1000)) return reject(new NotAuthorizedError());
       if (info) return reject(new NotAuthorizedError());
 
-      resolve({ id: payload.id, email: payload.email, role: payload.role });
+      resolve({ currentUser: payload.currentUser });
     }
     )(req);
 });
@@ -30,12 +30,23 @@ export const generateExpressContext = async (action: Action) => {
   return { request, tokenData, token };
 };
 
-export const authorizationChecker = async (action: Action, roles: string[]): Promise<boolean> => {
-  const context = await generateExpressContext(action);
-  const role = context.tokenData.role;
+export const currentUserChecker = async (action: Action) => {
+  const { tokenData: { currentUser } } = await generateExpressContext(action);
 
-  if (!role) throw new NotAuthorizedError();
-  if (!roles || roles.length === 0 || !roles.includes(role)) throw new NotAuthorizedError();
+  if (!currentUser) {
+    throw new NotAuthorizedError();
+  }
+
+  return currentUser;
+};
+
+export const authorizationChecker = async (action: Action, roles: string[]): Promise<boolean> => {
+  const { tokenData } = await generateExpressContext(action);
+  const { currentUser: { role } } = tokenData;
+
+  if (!role || roles.length === 0 || !roles.includes(role.name)) {
+    throw new NotAuthorizedError();
+  }
 
   return true;
 };

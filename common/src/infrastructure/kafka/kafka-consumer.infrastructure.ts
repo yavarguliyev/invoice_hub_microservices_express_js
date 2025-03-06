@@ -1,10 +1,12 @@
 import { Kafka, Consumer } from 'kafkajs';
-import { LoggerTracerInfrastructure } from '../';
+
+import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
+import { GroupIds } from '../../domain/enums/events.enum';
 
 export class KafkaConsumerInfrastructure {
   private consumer: Consumer;
 
-  constructor (private kafka: Kafka, private groupId: string = 'my-group') {
+  constructor (private kafka: Kafka, private groupId: string = GroupIds.BASE_GROUP) {
     this.consumer = this.kafka.consumer({ groupId: this.groupId });
   }
 
