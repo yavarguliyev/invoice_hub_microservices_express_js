@@ -8,7 +8,6 @@ import {
   configureContainers,
   configureControllersAndServices,
   configureInfrastructures,
-  configureKafkaServices,
   configureMiddlewares,
   configureRepositories
 } from 'application/ioc/bindings';
@@ -26,7 +25,6 @@ const initializeDependencyInjections = async (): Promise<void> => {
 
 const initializeInfrastructureServices = async (): Promise<void> => {
   await KafkaInfrastructure.initialize({ clientId: ClientIds.ORDER_SERVICE });
-  await configureKafkaServices();
 };
 
 const initializeServer = async (): Promise<http.Server> => {

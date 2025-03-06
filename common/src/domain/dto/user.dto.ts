@@ -4,7 +4,7 @@ import { RoleDto } from './role.dto';
 
 export class UserDto {
   @Expose()
-  id: number;
+  id: string;
 
   @Expose()
   role: RoleDto;

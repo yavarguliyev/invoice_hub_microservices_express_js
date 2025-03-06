@@ -4,7 +4,7 @@ import { useContainer as routingControllersUseContainer } from 'routing-controll
 import { ContainerHelper, GlobalErrorHandlerMiddleware, registerService, ContainerItems } from '@invoice-hub/common';
 
 import { OrdersController } from 'api/v1/orders.controller';
-import { IOrderService, OrderService } from 'application/services/order.service';
+import { OrderService } from 'application/services/order.service';
 import { DbConnectionInfrastructure } from 'infrastructure/db-connection.infrastructure';
 import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { Order } from 'domain/entities/order.entity';
@@ -35,9 +35,4 @@ export function configureControllersAndServices () {
 
   ContainerHelper
     .registerController(OrdersController);
-};
-
-export async function configureKafkaServices () {
-  const orderService = ContainerHelper.get<IOrderService>(ContainerItems.IOrderService);
-  await orderService.initialize();
 };

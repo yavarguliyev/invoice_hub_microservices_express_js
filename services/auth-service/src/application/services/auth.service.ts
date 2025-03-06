@@ -41,7 +41,6 @@ export class AuthService implements IAuthService {
 
     if (!decoded?.exp) {
       LoggerTracerInfrastructure.log('Signout failed: Invalid or malformed token', 'error');
-
       return false;
     }
 

@@ -1,13 +1,28 @@
 import { Container } from 'typedi';
 import {
-  GetQueryResultsArgs, GroupIds, KafkaInfrastructure, LoggerTracerInfrastructure, OrderDto, queryResults, ResponseResults, ResultMessage, Subjects
+  CreateOrderArgs,
+  GenerateInvoiceArgs,
+  GetQueryResultsArgs,
+  InvoiceStatus,
+  KafkaInfrastructure,
+  LoggerTracerInfrastructure,
+  OrderApproveOrCancelArgs,
+  OrderDto,
+  OrderStatus,
+  queryResults,
+  ResponseResults,
+  ResultMessage,
+  Subjects,
+  UserDto
 } from '@invoice-hub/common';
 
 import { OrderRepository } from 'domain/repositories/order.repository';
 
 export interface IOrderService {
-  initialize (): Promise<void>;
   get (query: GetQueryResultsArgs): Promise<ResponseResults<OrderDto>>;
+  createOrder(currentUser: UserDto, args: CreateOrderArgs): Promise<ResponseResults<OrderDto>>;
+  approveOrder(orderId: string): Promise<ResponseResults<OrderDto>>;
+  cancelOrder(orderId: string): Promise<ResponseResults<OrderDto>>;
   handleOrderCreated (message: string): Promise<any>;
 }
 
@@ -18,14 +33,29 @@ export class OrderService implements IOrderService {
     this.orderRepository = Container.get(OrderRepository);
   }
 
-  async initialize () {
-    await KafkaInfrastructure.subscribe(Subjects.ORDER_CREATED, this.handleOrderCreated.bind(this), { groupId: GroupIds.ORDER_SERVICE_GROUP });
-  }
-
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.orderRepository, query, dtoClass: OrderDto });
 
     return { payloads, total, result: ResultMessage.SUCCESS };
+  }
+
+  async createOrder ({ id }: UserDto, args: CreateOrderArgs) {
+    const order = this.orderRepository.create({ ...args, userId: id, status: OrderStatus.PENDING });
+    await this.orderRepository.save(order);
+
+    return { result: ResultMessage.SUCCESS };
+  }
+
+  async approveOrder (orderId: string) {
+    return this.processOrderApproveOrCancel({
+      orderId, newOrderStatus: OrderStatus.COMPLETED, newInvoiceStatus: InvoiceStatus.PAID
+    });
+  }
+
+  async cancelOrder (orderId: string) {
+    return this.processOrderApproveOrCancel({
+      orderId, newOrderStatus: OrderStatus.CANCELLED, newInvoiceStatus: InvoiceStatus.CANCELLED
+    });
   }
 
   async handleOrderCreated (message: string) {
@@ -33,5 +63,18 @@ export class OrderService implements IOrderService {
     await KafkaInfrastructure.publish(Subjects.INVOICE_GENERATE, JSON.stringify({ orderId, order }));
 
     LoggerTracerInfrastructure.log(`Order Id: ${orderId} generated for generating invoice for the order: ${JSON.stringify({ order })}...`);
+  }
+
+  private async processOrderApproveOrCancel (args: OrderApproveOrCancelArgs) {
+    const { orderId, newOrderStatus } = args;
+
+    const order = await this.orderRepository.findOneOrFail({ where: { id: orderId, status: OrderStatus.PENDING } });
+    order.status = newOrderStatus;
+
+    await this.orderRepository.save(order);
+    const invoiceArgs = { ...args, totalAmount: order.totalAmount, userId: order.userId } as GenerateInvoiceArgs;
+    await KafkaInfrastructure.publish(Subjects.INVOICE_GENERATE, JSON.stringify(invoiceArgs));
+
+    return { result: ResultMessage.SUCCESS };
   }
 }

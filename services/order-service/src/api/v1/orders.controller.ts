@@ -1,9 +1,12 @@
-import { JsonController, Get, QueryParams, Authorized } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, ContainerItems, Roles } from '@invoice-hub/common';
+import {
+  JsonController, Get, QueryParams, Authorized, Post, CurrentUser, Body, HttpCode, Patch, Param
+} from 'routing-controllers';
+import {
+  ContainerHelper, createVersionedRoute, GetQueryResultsArgs, ContainerItems, Roles, UserDto, CreateOrderArgs
+} from '@invoice-hub/common';
 
 import { IOrderService } from 'application/services/order.service';
 
-@Authorized([Roles.GlobalAdmin, Roles.Contributor, Roles.Contributor, Roles.Contributor])
 @JsonController(createVersionedRoute({ controllerPath: '/orders', version: 'v1' }))
 export class OrdersController {
   private orderService: IOrderService;
@@ -12,8 +15,28 @@ export class OrdersController {
     this.orderService = ContainerHelper.get<IOrderService>(ContainerItems.IOrderService);
   }
 
+  @Authorized([Roles.GlobalAdmin, Roles.Admin])
   @Get('/')
   async get (@QueryParams() query: GetQueryResultsArgs) {
     return await this.orderService.get(query);
+  }
+
+  @Authorized([Roles.Standard])
+  @HttpCode(201)
+  @Post('/')
+  async createOrder (@CurrentUser() currentUser: UserDto, @Body() args: CreateOrderArgs) {
+    return await this.orderService.createOrder(currentUser, args);
+  }
+
+  @Authorized([Roles.GlobalAdmin, Roles.Admin])
+  @Patch('/:id/approve')
+  async approveOrder (@Param('id') orderId: string) {
+    return await this.orderService.approveOrder(orderId);
+  }
+
+  @Authorized([Roles.GlobalAdmin, Roles.Admin])
+  @Patch('/:id/cancel')
+  async cancelOrder (@Param('id') orderId: string) {
+    return await this.orderService.cancelOrder(orderId);
   }
 }
