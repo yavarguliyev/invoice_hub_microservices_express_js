@@ -5,7 +5,6 @@ import {
   GetQueryResultsArgs,
   InvoiceStatus,
   KafkaInfrastructure,
-  LoggerTracerInfrastructure,
   OrderApproveOrCancelArgs,
   OrderDto,
   OrderStatus,
@@ -23,7 +22,6 @@ export interface IOrderService {
   createOrder(currentUser: UserDto, args: CreateOrderArgs): Promise<ResponseResults<OrderDto>>;
   approveOrder(orderId: string): Promise<ResponseResults<OrderDto>>;
   cancelOrder(orderId: string): Promise<ResponseResults<OrderDto>>;
-  handleOrderCreated (message: string): Promise<any>;
 }
 
 export class OrderService implements IOrderService {
@@ -56,13 +54,6 @@ export class OrderService implements IOrderService {
     return this.processOrderApproveOrCancel({
       orderId, newOrderStatus: OrderStatus.CANCELLED, newInvoiceStatus: InvoiceStatus.CANCELLED
     });
-  }
-
-  async handleOrderCreated (message: string) {
-    const { orderId, order } = JSON.parse(message);
-    await KafkaInfrastructure.publish(Subjects.INVOICE_GENERATE, JSON.stringify({ orderId, order }));
-
-    LoggerTracerInfrastructure.log(`Order Id: ${orderId} generated for generating invoice for the order: ${JSON.stringify({ order })}...`);
   }
 
   private async processOrderApproveOrCancel (args: OrderApproveOrCancelArgs) {
