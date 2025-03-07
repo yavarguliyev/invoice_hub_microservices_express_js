@@ -2,14 +2,13 @@ import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
 import {
-  ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems, DbConnectionInfrastructure, getDataSourceConfig, DBServicesName
+  ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems, DbConnectionInfrastructure, getDataSourceConfig, ServicesName
 } from '@invoice-hub/common';
 
 import { InvoicesController } from 'api/v1/invoices.controller';
 import { IInvoiceService, InvoiceService } from 'application/services/invoice.service';
 import { Invoice } from 'domain/entities/invoice.entity';
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 
 export function configureContainers () {
   typeormUseContainer(Container);
@@ -17,14 +16,10 @@ export function configureContainers () {
 };
 
 export async function configureRepositories () {
-  const dataSource = DbConnectionInfrastructure.create({ serviceName: DBServicesName.INVOICE_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Invoice]) });
+  const dataSource = DbConnectionInfrastructure.create({ serviceName: ServicesName.INVOICE_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Invoice]) });
   await dataSource.initialize();
 
   Container.set(InvoiceRepository, dataSource.getRepository(Invoice));
-};
-
-export function configureInfrastructures () {
-  Container.set(ExpressServerInfrastructure, new ExpressServerInfrastructure());
 };
 
 export function configureMiddlewares () {

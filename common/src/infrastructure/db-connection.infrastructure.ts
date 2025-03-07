@@ -1,10 +1,10 @@
 import { DataSource } from 'typeorm';
 
 import { DbConnectionConfig } from '../domain/interfaces/db-connection-config.interface';
-import { DBServicesName } from '../domain/enums/db-services-names.enum';
+import { ServicesName } from '../domain/enums/services-names.enum';
 
 export class DbConnectionInfrastructure {
-  private static dataSourceMap: Map<DBServicesName, DataSource> = new Map();
+  private static dataSourceMap: Map<ServicesName, DataSource> = new Map();
 
   static create ({ serviceName, dataSourceOptions }: DbConnectionConfig): DataSource {
     if (!this.dataSourceMap.has(serviceName)) {
@@ -14,7 +14,7 @@ export class DbConnectionInfrastructure {
     return this.dataSourceMap.get(serviceName)!;
   }
 
-  static async disconnect (serviceName: DBServicesName): Promise<void> {
+  static async disconnect (serviceName: ServicesName): Promise<void> {
     const dataSource = this.dataSourceMap.get(serviceName);
 
     if (dataSource && dataSource.isInitialized) {
@@ -23,12 +23,12 @@ export class DbConnectionInfrastructure {
     }
   }
 
-  static isConnected (serviceName: DBServicesName): boolean {
+  static isConnected (serviceName: ServicesName): boolean {
     const dataSource = this.dataSourceMap.get(serviceName);
     return dataSource ? dataSource.isInitialized : false;
   }
 
-  static getDataSource(serviceName: DBServicesName): DataSource | undefined {
+  static getDataSource(serviceName: ServicesName): DataSource | undefined {
     return this.dataSourceMap.get(serviceName);
   }
 }

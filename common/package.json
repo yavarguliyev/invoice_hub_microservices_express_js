@@ -24,6 +24,7 @@
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "express-validator": "^7.2.1",
+    "http-proxy-middleware": "^3.0.3",
     "kafkajs": "^2.2.4",
     "license-checker": "^25.0.1",
     "passport": "^0.7.0",

@@ -1,23 +1,16 @@
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import http from 'http';
-import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds } from '@invoice-hub/common';
+import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ServicesName, ExpressServerInfrastructure } from '@invoice-hub/common';
 
+import { controllers } from 'api';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
-import {
-  configureContainers,
-  configureControllersAndServices,
-  configureInfrastructures,
-  configureMiddlewares,
-  configureRepositories
-} from 'application/ioc/bindings';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
+import { configureContainers, configureControllersAndServices, configureMiddlewares, configureRepositories } from 'application/ioc/bindings';
 
 config();
 
 const initializeDependencyInjections = async (): Promise<void> => {
   configureContainers();
-  configureInfrastructures();
   await configureRepositories();
   configureMiddlewares();
   configureControllersAndServices();
@@ -28,8 +21,7 @@ const initializeInfrastructureServices = async (): Promise<void> => {
 };
 
 const initializeServer = async (): Promise<http.Server> => {
-  const expressServer = new ExpressServerInfrastructure();
-  const app = await expressServer.get();
+  const app = await ExpressServerInfrastructure.get(ServicesName.ORDER_SERVICE, { controllers });
   const server = http.createServer(app);
 
   server.keepAliveTimeout = appConfig.KEEP_ALIVE_TIMEOUT;

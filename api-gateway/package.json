@@ -16,7 +16,6 @@
 	},
 	"keywords": [],
 	"dependencies": {
-		"@invoice-hub/common": "*",
-		"http-proxy-middleware": "^3.0.3"
+		"@invoice-hub/common": "*"
 	}
 }

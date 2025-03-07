@@ -2,13 +2,11 @@ import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
 import {
-  ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems, DbConnectionInfrastructure, getDataSourceConfig,
-  DBServicesName
+  ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems, DbConnectionInfrastructure, getDataSourceConfig, ServicesName
 } from '@invoice-hub/common';
 
 import { OrdersController } from 'api/v1/orders.controller';
 import { OrderService } from 'application/services/order.service';
-import { ExpressServerInfrastructure } from 'infrastructure/express-server.infrastructure';
 import { Order } from 'domain/entities/order.entity';
 import { OrderRepository } from 'domain/repositories/order.repository';
 
@@ -18,14 +16,10 @@ export function configureContainers () {
 };
 
 export async function configureRepositories () {
-  const dataSource = DbConnectionInfrastructure.create({ serviceName: DBServicesName.ORDER_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Order]) });
+  const dataSource = DbConnectionInfrastructure.create({ serviceName: ServicesName.ORDER_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Order]) });
   await dataSource.initialize();
 
   Container.set(OrderRepository, dataSource.getRepository(Order));
-};
-
-export function configureInfrastructures () {
-  Container.set(ExpressServerInfrastructure, new ExpressServerInfrastructure());
 };
 
 export function configureMiddlewares () {
