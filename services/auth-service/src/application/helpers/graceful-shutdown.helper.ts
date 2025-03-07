@@ -1,17 +1,16 @@
 import {
-  BaseGracefulShutdownHelper, KafkaInfrastructure, LoggerTracerInfrastructure, RetryHelper, DbConnectionInfrastructure,
-  ServicesName
+  BaseGracefulShutdownHelper, KafkaInfrastructure, LoggerTracerInfrastructure, RetryHelper, DbConnectionInfrastructure, ServicesName, RedisInfrastructure
 } from '@invoice-hub/common';
 
 export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
   protected static async disconnectServices (): Promise<void> {
     const disconnectPromises = [
-      RetryHelper.executeWithRetry(() => DbConnectionInfrastructure.disconnect(ServicesName.AUTH_SERVICE), {
-        serviceName: 'Database',
+      RetryHelper.executeWithRetry(() => RedisInfrastructure.disconnect(ServicesName.AUTH_SERVICE), {
+        serviceName: 'Redis',
         maxRetries: this.maxRetries,
         retryDelay: this.retryDelay,
         onRetry: (attempt) => {
-          LoggerTracerInfrastructure.log(`Retrying Database disconnect, attempt ${attempt}`);
+          LoggerTracerInfrastructure.log(`Retrying Redis disconnect, attempt ${attempt}`);
         }
       }),
       RetryHelper.executeWithRetry(() => KafkaInfrastructure.disconnect(), {
@@ -20,6 +19,14 @@ export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
         retryDelay: this.retryDelay,
         onRetry: (attempt) => {
           LoggerTracerInfrastructure.log(`Retrying Kafka disconnect, attempt ${attempt}`);
+        }
+      }),
+      RetryHelper.executeWithRetry(() => DbConnectionInfrastructure.disconnect(ServicesName.AUTH_SERVICE), {
+        serviceName: 'Database',
+        maxRetries: this.maxRetries,
+        retryDelay: this.retryDelay,
+        onRetry: (attempt) => {
+          LoggerTracerInfrastructure.log(`Retrying Database disconnect, attempt ${attempt}`);
         }
       })
     ];

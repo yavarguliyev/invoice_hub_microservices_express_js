@@ -6,6 +6,37 @@ import { HandleProcessSignalsOptions } from '../../domain/interfaces/handle-proc
 import { CreateVersionedRouteOptions } from '../../domain/interfaces/create-versioned-route-options.interface';
 import { RegisterServiceOptions } from '../../domain/interfaces/register-service-options.interface';
 import { QueryResultsOptions } from '../../domain/interfaces/query-results-options.interface';
+import { ServiceInitializationOptions } from '../../domain/interfaces/service-initialization-options.interface';
+import { EnsureInitializedOptions } from '../../domain/interfaces/ensure-initialized-options.interface';
+import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
+
+export const safelyInitializeService = async ({ serviceName, initializeFn }: ServiceInitializationOptions): Promise<void> => {
+  try {
+    await initializeFn();
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+
+    LoggerTracerInfrastructure.log(`${serviceName} initialization failed: ${errorMessage}`, 'error');
+    throw err;
+  }
+};
+
+export const ensureInitialized = <T> ({ connection, serviceName }: EnsureInitializedOptions<T>): T => {
+  if (!connection) {
+    throw new Error(`${serviceName} is not initialized. Call initialize() first.`);
+  }
+
+  return connection;
+};
+
+export const getEnvVariable = (key: string): string => {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Environment variable ${key} is not defined`);
+  }
+
+  return value;
+};
 
 export const handleProcessSignals = <Args extends unknown[]> ({ shutdownCallback, callbackArgs }: HandleProcessSignalsOptions<Args>): void => {
   ['SIGINT', 'SIGTERM', 'SIGUSR2'].forEach(signal => process.on(signal, async () => await shutdownCallback(...callbackArgs)));

@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import http from 'http';
-import { KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ExpressServerInfrastructure, ServicesName } from '@invoice-hub/common';
+import {
+  KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ExpressServerInfrastructure, ServicesName, RedisInfrastructure
+} from '@invoice-hub/common';
 
 import { controllers } from 'api';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
@@ -17,6 +19,7 @@ const initializeDependencyInjections = async (): Promise<void> => {
 };
 
 const initializeInfrastructureServices = async (): Promise<void> => {
+  await RedisInfrastructure.initialize({ serviceName: ServicesName.AUTH_SERVICE });
   await KafkaInfrastructure.initialize({ clientId: ClientIds.AUTH_SERVICE });
 };
 

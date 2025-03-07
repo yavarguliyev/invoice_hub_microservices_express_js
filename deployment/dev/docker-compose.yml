@@ -27,8 +27,8 @@ services:
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
       ALLOW_PLAINTEXT_LISTENER: 'yes'
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - '9092:9092'
+      - '29092:29092'
     depends_on:
       - zookeeper
     networks:
@@ -38,7 +38,7 @@ services:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
-      - 9100:8080
+      - '9100:8080'
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -62,7 +62,7 @@ services:
     volumes:
       - auth-postgres-data:/var/lib/postgresql/data
     ports:
-      - "54321:5432"
+      - '54321:5432'
     networks:
       - common
   
@@ -80,7 +80,7 @@ services:
     volumes:
       - invoice-postgres-data:/var/lib/postgresql/data
     ports:
-      - "54322:5432"
+      - '54322:5432'
     networks:
       - common
     
@@ -98,7 +98,43 @@ services:
     volumes:
       - order-postgres-data:/var/lib/postgresql/data
     ports:
-      - "54323:5432"
+      - '54323:5432'
+    networks:
+      - common
+
+  redis_auth:
+    container_name: redis_auth_container
+    image: redis:7.0
+    ports:
+      - '6381:6379'
+    command: ['redis-server', '--requirepass', 'your_redis_password']
+    restart: always
+    volumes:
+      - redis_auth_data:/data
+    networks:
+      - common
+  
+  redis_invoice:
+    container_name: redis_invoice_container
+    image: redis:7.0
+    ports:
+      - '6382:6379'
+    command: ['redis-server', '--requirepass', 'your_redis_password']
+    restart: always
+    volumes:
+      - redis_invoice_data:/data
+    networks:
+      - common
+
+  redis_order:
+    container_name: redis_order_container
+    image: redis:7.0
+    ports:
+      - '6383:6379'
+    command: ['redis-server', '--requirepass', 'your_redis_password']
+    restart: always
+    volumes:
+      - redis_order_data:/data
     networks:
       - common
 
@@ -143,7 +179,7 @@ services:
     environment:
       - PORT=3000
     ports:
-      - "3000:3000"
+      - '3000:3000'
     networks:
       - common
     volumes:
@@ -175,8 +211,13 @@ services:
       - DB_DEFAULT_DATABASE=auth_service_db
       - DB_DEFAULT_HOST=auth-db
       - DB_DEFAULT_PORT=5432
+      - REDIS_HOST=redis_auth_container
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_redis_password
+      - REDIS_URL=redis://redis_auth_container:6379
+      - REDIS_DEFAULT_CACHE_TTL=3600
     ports:
-      - "4001:4001"
+      - '4001:4001'
     networks:
       - common
     volumes:
@@ -185,6 +226,7 @@ services:
       - ../../services/auth-service/migrations:/app/services/auth-service/migrations:delegated
     depends_on:
       - auth-db
+      - redis_auth
       - kafka
       - order-service
       - invoice-service
@@ -206,8 +248,13 @@ services:
       - DB_DEFAULT_DATABASE=invoice_service_db
       - DB_DEFAULT_HOST=invoice-db
       - DB_DEFAULT_PORT=5432
+      - REDIS_HOST=redis_invoice_container
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_redis_password
+      - REDIS_URL=redis://redis_invoice_container:6379
+      - REDIS_DEFAULT_CACHE_TTL=3600
     ports:
-      - "4002:4002"
+      - '4002:4002'
     networks:
       - common
     volumes:
@@ -216,6 +263,7 @@ services:
       - ../../services/invoice-service/migrations:/app/services/invoice-service/migrations:delegated
     depends_on:
       - invoice-db
+      - redis_invoice
       - kafka
       - order-service
     command: sh -c "yarn mup && yarn start"
@@ -236,8 +284,13 @@ services:
       - DB_DEFAULT_DATABASE=order_service_db
       - DB_DEFAULT_HOST=order-db
       - DB_DEFAULT_PORT=5432
+      - REDIS_HOST=redis_order_container
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_redis_password
+      - REDIS_URL=redis://redis_order_container:6379
+      - REDIS_DEFAULT_CACHE_TTL=3600
     ports:
-      - "4003:4003"
+      - '4003:4003'
     networks:
       - common
     volumes:
@@ -246,6 +299,7 @@ services:
       - ../../services/order-service/migrations:/app/services/order-service/migrations:delegated
     depends_on:
       - order-db
+      - redis_order
       - kafka
     command: sh -c "yarn mup && yarn start"
 
@@ -259,4 +313,7 @@ volumes:
   auth-postgres-data:
   invoice-postgres-data:
   order-postgres-data:
-  grafana-data: 
+  grafana-data:
+  redis_auth_data:
+  redis_order_data:
+  redis_invoice_data:
