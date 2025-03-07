@@ -1,5 +1,6 @@
 export * from './configs/app.config';
 export * from './configs/datasource.config';
+export * from './configs/prometheus-grafana.config';
 export * from './configs/passport.config';
 export * from './decorators/password-strength.decorator';
 export * from './errors/custom-error';

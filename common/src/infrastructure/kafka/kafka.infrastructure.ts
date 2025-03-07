@@ -1,4 +1,4 @@
-import { Kafka } from 'kafkajs';
+import { Admin, Kafka } from 'kafkajs';
 
 import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
 import { KafkaConsumerInfrastructure } from '../kafka/kafka-consumer.infrastructure';
@@ -10,40 +10,22 @@ export class KafkaInfrastructure {
   private static kafka?: Kafka;
   private static producer?: KafkaProducerInfrastructure;
   private static consumer?: KafkaConsumerInfrastructure;
+  private static admin?: Admin;
 
   static async initialize ({ clientId }: KafkaInitOptions): Promise<void> {
     if (this.kafka) {
       return;
     }
 
-    const brokers = [appConfig.KAFKA_BROKER!];
-    this.kafka = new Kafka({ clientId, brokers, logCreator: LoggerTracerInfrastructure.kafkaLogCreator });
+    const brokers = [appConfig.KAFKA_BROKER];
 
+    this.kafka = new Kafka({ clientId, brokers, logCreator: LoggerTracerInfrastructure.kafkaLogCreator });
+    this.admin = this.kafka.admin();
     this.producer = new KafkaProducerInfrastructure(this.kafka);
     this.consumer = new KafkaConsumerInfrastructure(this.kafka);
 
-    await Promise.all([this.producer.connect(), this.consumer.connect()]);
+    await Promise.all([this.producer.connect(), this.consumer.connect(), this.admin.connect()]);
     LoggerTracerInfrastructure.log('Kafka initialized and connected...');
-  }
-
-  static async createTopic (topicName: string): Promise<void> {
-    if (!this.kafka) {
-      throw new Error('Kafka is not initialized');
-    }
-
-    const admin = this.kafka.admin();
-    await admin.connect();
-
-    try {
-      const existingTopics = await admin.listTopics();
-      if (!existingTopics.includes(topicName)) {
-        await admin.createTopics({ topics: [{ topic: topicName, numPartitions: 3, replicationFactor: 2 }], validateOnly: false });
-      }
-    } catch (error) {
-      LoggerTracerInfrastructure.log(`Error creating topic ${topicName}: ${error}`, 'error');
-    } finally {
-      await admin.disconnect();
-    }
   }
 
   static async publish (topicName: string, message: string): Promise<void> {
@@ -51,7 +33,7 @@ export class KafkaInfrastructure {
       throw new Error('Kafka is not initialized');
     }
 
-    await this.createTopic(topicName);
+    await this.producer.createTopic(topicName);
     await this.producer.publish(topicName, message);
   }
 
@@ -69,11 +51,11 @@ export class KafkaInfrastructure {
   }
 
   static async disconnect (): Promise<void> {
-    if (!this.producer || !this.consumer) {
+    if (!this.producer || !this.consumer || !this.admin) {
       return;
     }
 
-    await Promise.all([this.producer.disconnect(), this.consumer.disconnect()]);
+    await Promise.all([this.producer.disconnect(), this.consumer.disconnect(), this.admin.disconnect()]);
     delete this.kafka;
 
     LoggerTracerInfrastructure.log('Kafka fully disconnected.');

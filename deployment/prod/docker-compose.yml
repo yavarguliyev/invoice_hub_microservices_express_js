@@ -139,6 +139,34 @@ services:
       retries: 5
       timeout: 5s
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - '9090:9090'
+    networks:
+      - common
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: 'admin'
+    ports:
+      - '3001:3000'
+    depends_on:
+      - order-service
+      - invoice-service
+      - auth-service
+      - api-gateway
+      - prometheus
+    networks:
+      - common
+    volumes:
+      - grafana-data:/var/lib/grafana
+
   api-gateway:
     container_name: api-gateway
     image: invoice_hub_microservices_api-gateway
@@ -281,3 +309,4 @@ volumes:
   auth-postgres-data:
   invoice-postgres-data:
   order-postgres-data:
+  grafana-data: 
