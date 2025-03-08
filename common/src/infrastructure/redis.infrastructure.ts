@@ -1,10 +1,10 @@
 import { createClient, RedisClientType } from 'redis';
 
-import { safelyInitializeService, getEnvVariable, ensureInitialized } from '../application/helpers/utility-functions.helper';
-import { Variables } from '../domain/enums/variables.enum';
+import { safelyInitializeService, ensureInitialized } from '../application/helpers/utility-functions.helper';
 import { ServicesName } from '../domain/enums/services-names.enum';
 import { RedisConnectionConfig } from '../domain/interfaces/redis-connection-config.interface';
 import { LoggerTracerInfrastructure } from '../infrastructure/logger-tracer.infrastructure';
+import { redisConfig } from '../core/configs/redis.config';
 
 export class RedisInfrastructure {
   private static clientMap: Map<ServicesName, RedisClientType> = new Map();
@@ -14,12 +14,7 @@ export class RedisInfrastructure {
       serviceName: serviceName,
       initializeFn: async () => {
         if (!RedisInfrastructure.clientMap.has(serviceName)) {
-          const port = getEnvVariable(Variables.REDIS_PORT);
-
-          const client = createClient({
-            socket: { host: getEnvVariable(Variables.REDIS_HOST), port: parseInt(port, 10) },
-            password: getEnvVariable(Variables.REDIS_PASSWORD)
-          }) as RedisClientType;
+          const client = createClient({ socket: { host: redisConfig.REDIS_HOST, port: redisConfig.REDIS_PORT }, password: redisConfig.REDIS_PASSWORD }) as RedisClientType;
 
           await client.connect();
           RedisInfrastructure.clientMap.set(serviceName, client);

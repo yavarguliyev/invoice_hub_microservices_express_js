@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { UserDto } from '../dto/user.dto';
+import { UserDto } from '../dtos/user.dto';
 
 export interface JwtPayload {
   currentUser: UserDto

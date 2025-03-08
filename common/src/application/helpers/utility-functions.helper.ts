@@ -1,13 +1,18 @@
 import { ObjectLiteral } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
+import crypto from 'crypto';
 
 import { ContainerHelper } from '../ioc/helpers/container.helper';
+import { redisConfig } from '../../core/configs/redis.config';
+import { RedisCacheKeys } from '../../core/types/redis-cache-keys.type';
 import { HandleProcessSignalsOptions } from '../../domain/interfaces/handle-process-signals-options.interface';
 import { CreateVersionedRouteOptions } from '../../domain/interfaces/create-versioned-route-options.interface';
 import { RegisterServiceOptions } from '../../domain/interfaces/register-service-options.interface';
 import { QueryResultsOptions } from '../../domain/interfaces/query-results-options.interface';
+import { GenerateCacheKeyOptions } from './../../domain/interfaces/generate-cache-key-options.interface';
 import { ServiceInitializationOptions } from '../../domain/interfaces/service-initialization-options.interface';
 import { EnsureInitializedOptions } from '../../domain/interfaces/ensure-initialized-options.interface';
+import { CompareValuesOptions } from '../../domain/interfaces/compare-values-options.interface';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
 
 export const safelyInitializeService = async ({ serviceName, initializeFn }: ServiceInitializationOptions): Promise<void> => {
@@ -29,15 +34,6 @@ export const ensureInitialized = <T> ({ connection, serviceName }: EnsureInitial
   return connection;
 };
 
-export const getEnvVariable = (key: string): string => {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Environment variable ${key} is not defined`);
-  }
-
-  return value;
-};
-
 export const handleProcessSignals = <Args extends unknown[]> ({ shutdownCallback, callbackArgs }: HandleProcessSignalsOptions<Args>): void => {
   ['SIGINT', 'SIGTERM', 'SIGUSR2'].forEach(signal => process.on(signal, async () => await shutdownCallback(...callbackArgs)));
 };
@@ -48,6 +44,29 @@ export const createVersionedRoute = ({ controllerPath, version }: CreateVersione
 
 export const registerService = <T> ({ id, service, isSingleton = true }: RegisterServiceOptions<T>): void => {
   isSingleton ? ContainerHelper.addSingleton<T>(id, service) : ContainerHelper.addTransient<T>(id, service);
+};
+
+export const generateCacheKey = ({ keyTemplate, args }: GenerateCacheKeyOptions): RedisCacheKeys => {
+  const ttl = redisConfig.REDIS_DEFAULT_CACHE_TTL;
+  const argsHash = crypto.createHash('md5').update(JSON.stringify(args)).digest('hex');
+  const cacheKey = `${keyTemplate}:${argsHash}`;
+
+  return { cacheKey, ttl };
+};
+
+export const compareValues = <T> ({ a, b, key, sortOrder }: CompareValuesOptions<T>): number => {
+  const valA = a[key];
+  const valB = b[key];
+
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+  } else if (typeof valA === 'number' && typeof valB === 'number') {
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  } else if (valA instanceof Date && valB instanceof Date) {
+    return sortOrder === 'asc' ? valA.getTime() - valB.getTime() : valB.getTime() - valA.getTime();
+  } else {
+    return 0;
+  }
 };
 
 export const queryResults = async <T extends ObjectLiteral, DTO, RelatedDTO = unknown> (
