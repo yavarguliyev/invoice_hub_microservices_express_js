@@ -18,5 +18,6 @@ export * from './inputs/get-query-results.args';
 export * from './inputs/order-approve-or-cancel.args';
 export * from './middlewares/error-handler.middleware';
 export * from './types/logger-tracer.type';
+export * from './types/redis-cache-keys.type';
 export * from './types/response-results.type';
 export * from './types/version-control.type';

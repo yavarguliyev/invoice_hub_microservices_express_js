@@ -1,5 +1,5 @@
 import { Container } from 'typedi';
-import { GetQueryResultsArgs, queryResults, ResponseResults, ResultMessage, RoleDto } from '@invoice-hub/common';
+import { GetQueryResultsArgs, queryResults, ResponseResults, ResultMessage, RoleDto, RedisDecorator, redisCacheConfig } from '@invoice-hub/common';
 
 import { RoleRepository } from 'domain/repositories/role.repository';
 
@@ -14,6 +14,7 @@ export class RoleService implements IRoleService {
     this.roleRepository = Container.get(RoleRepository);
   }
 
+  @RedisDecorator<RoleDto>(redisCacheConfig.ROLE_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.roleRepository, query, dtoClass: RoleDto });
 

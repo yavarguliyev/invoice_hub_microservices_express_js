@@ -9,6 +9,8 @@ import {
   OrderDto,
   OrderStatus,
   queryResults,
+  redisCacheConfig,
+  RedisDecorator,
   ResponseResults,
   ResultMessage,
   Subjects,
@@ -31,6 +33,7 @@ export class OrderService implements IOrderService {
     this.orderRepository = Container.get(OrderRepository);
   }
 
+  @RedisDecorator<OrderDto>(redisCacheConfig.ORDER_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.orderRepository, query, dtoClass: OrderDto });
 

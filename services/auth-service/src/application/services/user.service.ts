@@ -1,7 +1,5 @@
 import { Container } from 'typedi';
-import {
-  GetQueryResultsArgs, ResponseResults, queryResults, ResultMessage, UserDto, RoleDto
-} from '@invoice-hub/common';
+import { GetQueryResultsArgs, ResponseResults, queryResults, ResultMessage, UserDto, RoleDto, RedisDecorator, redisCacheConfig } from '@invoice-hub/common';
 
 import { UserRepository } from 'domain/repositories/user.repository';
 
@@ -16,6 +14,7 @@ export class UserService implements IUserService {
     this.userRepository = Container.get(UserRepository);
   }
 
+  @RedisDecorator<UserDto>(redisCacheConfig.USER_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({
       repository: this.userRepository,

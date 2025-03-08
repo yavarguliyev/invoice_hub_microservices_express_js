@@ -10,7 +10,9 @@ import {
   queryResults,
   ResponseResults,
   ResultMessage,
-  Subjects
+  Subjects,
+  RedisDecorator,
+  redisCacheConfig
 } from '@invoice-hub/common';
 
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
@@ -32,6 +34,7 @@ export class InvoiceService implements IInvoiceService {
     await KafkaInfrastructure.subscribe(Subjects.INVOICE_GENERATE, this.generateInvoice.bind(this), { groupId: GroupIds.INVOICE_SERVICE_GROUP });
   }
 
+  @RedisDecorator<InvoiceDto>(redisCacheConfig.INVOICE_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.invoiceRepository, query, dtoClass: InvoiceDto });
 
