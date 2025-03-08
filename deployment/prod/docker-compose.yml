@@ -197,6 +197,7 @@ services:
     container_name: prometheus
     image: prom/prometheus:latest
     volumes:
+      - prometheus-data:/prometheus
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - '9090:9090'
@@ -385,3 +386,4 @@ volumes:
   redis_auth_data:
   redis_invoice_data:
   redis_order_data:
+  prometheus-data:
