@@ -1,7 +1,7 @@
 import winston from 'winston';
 import { logCreator, logLevel, LogEntry } from 'kafkajs';
 
-import { LoggerTracerLevels } from '../core/types/logger-tracer.type';
+import { LoggerTracerLevels } from '../../core/types/logger-tracer.type';
 
 export class LoggerTracerInfrastructure {
   private static logger = winston.createLogger({
@@ -37,7 +37,7 @@ export class LoggerTracerInfrastructure {
     };
 
     const memberAssignment = entry.log?.memberAssignment;
-    if (memberAssignment) {
+    if (memberAssignment && Object.keys(memberAssignment).length > 0) {
       const topicName = Object.keys(memberAssignment)[0];
       const groupId = entry.log.groupId;
       const logMessage = entry.log.message;

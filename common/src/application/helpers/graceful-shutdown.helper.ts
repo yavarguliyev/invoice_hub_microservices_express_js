@@ -1,10 +1,9 @@
 import { config } from 'dotenv';
 import http from 'http';
 
-import { RetryHelper } from './retry.helper';
+import { getErrorMessage } from './utility-functions.helper';
 import { appConfig } from '../../core/configs/app.config';
-import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
-import { KafkaInfrastructure } from '../../infrastructure/kafka/kafka.infrastructure';
+import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
 
 config();
 
@@ -24,10 +23,8 @@ export abstract class BaseGracefulShutdownHelper {
       await this.disconnectServices();
 
       shutdownTimer = this.startShutdownTimer();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-
-      LoggerTracerInfrastructure.log(`Error during shutdown: ${errorMessage}`, 'error');
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error during shutdown: ${getErrorMessage(error)}`, 'error');
     } finally {
       if (shutdownTimer) {
         clearTimeout(shutdownTimer);
@@ -37,25 +34,7 @@ export abstract class BaseGracefulShutdownHelper {
     }
   }
 
-  protected static async disconnectServices (): Promise<void> {
-    const disconnectPromises = [
-      RetryHelper.executeWithRetry(() => KafkaInfrastructure.disconnect(), {
-        serviceName: 'Kafka',
-        maxRetries: this.maxRetries,
-        retryDelay: this.retryDelay,
-        onRetry: (attempt) => {
-          LoggerTracerInfrastructure.log(`Retrying Kafka disconnect, attempt ${attempt}`);
-        }
-      })
-    ];
-
-    try {
-      await Promise.all(disconnectPromises);
-    } catch (err) {
-      LoggerTracerInfrastructure.log(`Service disconnection failed: ${err}`, 'error');
-      throw err;
-    }
-  }
+  protected static async disconnectServices (): Promise<void> {}
 
   static startShutdownTimer () {
     return setTimeout(() => {

@@ -5,30 +5,32 @@ import crypto from 'crypto';
 import { ContainerHelper } from '../ioc/helpers/container.helper';
 import { redisConfig } from '../../core/configs/redis.config';
 import { RedisCacheKeys } from '../../core/types/redis-cache-keys.type';
-import { HandleProcessSignalsOptions } from '../../domain/interfaces/handle-process-signals-options.interface';
-import { CreateVersionedRouteOptions } from '../../domain/interfaces/create-versioned-route-options.interface';
-import { RegisterServiceOptions } from '../../domain/interfaces/register-service-options.interface';
-import { QueryResultsOptions } from '../../domain/interfaces/query-results-options.interface';
-import { GenerateCacheKeyOptions } from './../../domain/interfaces/generate-cache-key-options.interface';
-import { ServiceInitializationOptions } from '../../domain/interfaces/service-initialization-options.interface';
-import { EnsureInitializedOptions } from '../../domain/interfaces/ensure-initialized-options.interface';
-import { CompareValuesOptions } from '../../domain/interfaces/compare-values-options.interface';
-import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
+import { QueryResultPayload } from '../../core/types/query-results.type';
+import {
+  HandleProcessSignalsOptions,
+  CreateVersionedRouteOptions,
+  RegisterServiceOptions,
+  QueryResultsOptions,
+  GenerateCacheKeyOptions,
+  ServiceInitializationOptions,
+  EnsureInitializedOptions
+} from '../../domain/interfaces/utility-functions-options.interface';
+import { KafkaResponse } from '../../domain/interfaces/kafka-request-options.interface';
+import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
 
-export const safelyInitializeService = async ({ serviceName, initializeFn }: ServiceInitializationOptions): Promise<void> => {
+export const safelyInitializeService = async ({ clientId, initializeFn }: ServiceInitializationOptions): Promise<void> => {
   try {
     await initializeFn();
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+  } catch (error) {
+    LoggerTracerInfrastructure.log(`${clientId} initialization failed: ${getErrorMessage(error)}`, 'error');
 
-    LoggerTracerInfrastructure.log(`${serviceName} initialization failed: ${errorMessage}`, 'error');
-    throw err;
+    throw error;
   }
 };
 
-export const ensureInitialized = <T> ({ connection, serviceName }: EnsureInitializedOptions<T>): T => {
+export const ensureInitialized = <T> ({ connection, clientId }: EnsureInitializedOptions<T>): T => {
   if (!connection) {
-    throw new Error(`${serviceName} is not initialized. Call initialize() first.`);
+    throw new Error(`${clientId} is not initialized. Call initialize() first.`);
   }
 
   return connection;
@@ -54,26 +56,11 @@ export const generateCacheKey = ({ keyTemplate, args }: GenerateCacheKeyOptions)
   return { cacheKey, ttl };
 };
 
-export const compareValues = <T> ({ a, b, key, sortOrder }: CompareValuesOptions<T>): number => {
-  const valA = a[key];
-  const valB = b[key];
-
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-  } else if (typeof valA === 'number' && typeof valB === 'number') {
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  } else if (valA instanceof Date && valB instanceof Date) {
-    return sortOrder === 'asc' ? valA.getTime() - valB.getTime() : valB.getTime() - valA.getTime();
-  } else {
-    return 0;
-  }
-};
-
-export const queryResults = async <T extends ObjectLiteral, DTO, RelatedDTO = unknown> (
-  { repository, query, dtoClass, relatedEntity }: QueryResultsOptions<T, DTO, RelatedDTO>
-): Promise<{ payloads: DTO[]; total: number }> => {
+export const queryResults = async <T extends ObjectLiteral, DTO, RelatedDTO = unknown> (args: QueryResultsOptions<T, DTO, RelatedDTO>): Promise<QueryResultPayload<DTO>> => {
+  const { repository, query, dtoClass, relatedEntity } = args;
   const { page = 1, limit = 10, filters = {}, order = {} } = query;
-  const [orderField, orderDirection] = Object.entries(order)[0] ?? ['id', 'DESC'];
+
+  const [orderField, orderDirection] = Object.entries(order)[0] ?? ['createdAt', 'DESC'];
 
   const offset = (page - 1) * limit;
   const queryBuilder = repository.createQueryBuilder('entity');
@@ -105,4 +92,24 @@ export const queryResults = async <T extends ObjectLiteral, DTO, RelatedDTO = un
   });
 
   return { payloads: dtos, total };
+};
+
+export function getErrorMessage (error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export const prepareMessage = (result: unknown, args: unknown[]) => {
+  const [firstArg] = args;
+
+  if (typeof firstArg === 'string') {
+    const parsedArg = JSON.parse(firstArg);
+
+    if ('correlationId' in parsedArg) {
+      return parsedArg as KafkaResponse;
+    }
+
+    return result;
+  }
+
+  return result;
 };

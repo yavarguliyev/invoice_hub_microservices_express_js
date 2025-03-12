@@ -1,9 +1,5 @@
-import {
-  JsonController, Get, QueryParams, Authorized, Post, CurrentUser, Body, HttpCode, Patch, Param
-} from 'routing-controllers';
-import {
-  ContainerHelper, createVersionedRoute, GetQueryResultsArgs, ContainerItems, Roles, UserDto, CreateOrderArgs
-} from '@invoice-hub/common';
+import { JsonController, Get, QueryParams, Authorized, Post, CurrentUser, Body, HttpCode, Patch, Param, Params } from 'routing-controllers';
+import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, ContainerItems, Roles, UserDto, CreateOrderArgs, GetOrderArgs } from '@invoice-hub/common';
 
 import { IOrderService } from 'application/services/order.service';
 
@@ -19,6 +15,11 @@ export class OrdersController {
   @Get('/')
   async get (@QueryParams() query: GetQueryResultsArgs) {
     return await this.orderService.get(query);
+  }
+
+  @Get('/:id')
+  async getById (@Params() args: GetOrderArgs) {
+    return await this.orderService.getById(args);
   }
 
   @Authorized([Roles.Standard])

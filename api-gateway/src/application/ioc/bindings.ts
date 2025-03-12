@@ -15,7 +15,5 @@ export function configureMiddlewares () {
 
 export function configureControllersAndServices () {
   registerService({ id: ContainerItems.IApiService, service: ApiService });
-
-  ContainerHelper
-    .registerController(ApiGatewayController);
+  ContainerHelper.registerController(ApiGatewayController);
 };

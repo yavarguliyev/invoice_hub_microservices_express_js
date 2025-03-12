@@ -1,11 +1,11 @@
+import { ResponseResults, ResultMessage } from '@invoice-hub/common';
+
 export interface IApiService {
-  get (): Promise<any>;
+  get(): Promise<ResponseResults<{ message: string }>>;
 }
 
 export class ApiService implements IApiService {
-  constructor () {}
-
   async get () {
-    return { message: 'API Gateway is working...' };
+    return { payload: { message: 'API Gateway is working...' }, result: ResultMessage.SUCCESS };
   }
 }

@@ -1,7 +1,14 @@
-import { IsEnum, IsNumber } from 'class-validator';
+import { IsEnum, IsNumber, IsString } from 'class-validator';
+import { Expose } from 'class-transformer';
 
 import { OrderStatus } from '../../domain/enums/order-status.enum';
 import { InvoiceStatus } from '../../domain/enums/invoice-status.enum';
+
+export class GetInvoiceArgs {
+  @Expose()
+  @IsString()
+  public id: string;
+}
 
 export class GenerateInvoiceArgs {
   @IsNumber()
@@ -18,4 +25,16 @@ export class GenerateInvoiceArgs {
 
   @IsNumber()
   totalAmount: number;
+}
+
+export class CreateInvoiceArgs {
+  @Expose()
+  @IsEnum(InvoiceStatus)
+  status: InvoiceStatus;
+
+  @Expose()
+  userId: string;
+
+  @Expose()
+  orderId: string;
 }

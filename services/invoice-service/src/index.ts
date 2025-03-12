@@ -1,31 +1,25 @@
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import http from 'http';
-import {
-  KafkaInfrastructure, LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ServicesName, ExpressServerInfrastructure, RedisInfrastructure
-} from '@invoice-hub/common';
+import { LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ExpressServerInfrastructure, getErrorMessage } from '@invoice-hub/common';
 
 import { controllers } from 'api';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
-import { configureContainers, configureControllersAndServices, configureKafkaServices, configureMiddlewares, configureRepositories } from 'application/ioc/bindings';
+import { configureContainers, configureControllersAndServices, configureKafkaServices, configureMiddlewares, configureInfrastructures } from 'application/ioc/bindings';
 
 config();
 
 const initializeDependencyInjections = async (): Promise<void> => {
   configureContainers();
-  await configureRepositories();
+  await configureInfrastructures();
   configureMiddlewares();
   configureControllersAndServices();
-};
-
-const initializeInfrastructureServices = async (): Promise<void> => {
-  await RedisInfrastructure.initialize({ serviceName: ServicesName.INVOICE_SERVICE });
-  await KafkaInfrastructure.initialize({ clientId: ClientIds.INVOICE_SERVICE });
   await configureKafkaServices();
 };
 
 const initializeServer = async (): Promise<http.Server> => {
-  const app = await ExpressServerInfrastructure.get(ServicesName.INVOICE_SERVICE, { controllers });
+  const appServer = new ExpressServerInfrastructure();
+  const app = await appServer.get({ clientId: ClientIds.INVOICE_SERVICE, controllers });
   const server = http.createServer(app);
 
   server.keepAliveTimeout = appConfig.KEEP_ALIVE_TIMEOUT;
@@ -42,29 +36,28 @@ const startServer = (httpServer: http.Server, port: number): void => {
 const main = async (): Promise<void> => {
   try {
     await initializeDependencyInjections();
-    await initializeInfrastructureServices();
 
     const appServer = await initializeServer();
     const port = appConfig.PORT;
 
     startServer(appServer, port);
-
     handleProcessSignals({ shutdownCallback: GracefulShutdownHelper.shutDown.bind(GracefulShutdownHelper), callbackArgs: [appServer] });
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+  } catch (error) {
+    LoggerTracerInfrastructure.log(`Error during initialization: ${getErrorMessage(error)}`, 'error');
 
-    LoggerTracerInfrastructure.log(`Error during initialization: ${errorMessage}`, 'error');
     process.exit(1);
   }
 };
 
-process.on('uncaughtException', () => {
-  LoggerTracerInfrastructure.log('Uncaught exception, exiting process', 'error');
+process.on('uncaughtException', (error) => {
+  LoggerTracerInfrastructure.log(`Uncaught exception: ${getErrorMessage(error)}`, 'error');
+
   process.exit(1);
 });
 
-process.on('unhandledRejection', () => {
-  LoggerTracerInfrastructure.log('Unhandled rejection, exiting process', 'error');
+process.on('unhandledRejection', (reason) => {
+  LoggerTracerInfrastructure.log(`Unhandled rejection: ${getErrorMessage(reason)}`, 'error');
+
   process.exit(1);
 });
 

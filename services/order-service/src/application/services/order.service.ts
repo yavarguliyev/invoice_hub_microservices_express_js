@@ -1,8 +1,10 @@
 import { Container } from 'typedi';
+import { plainToInstance } from 'class-transformer';
 import {
   CreateOrderArgs,
   GenerateInvoiceArgs,
   GetQueryResultsArgs,
+  GroupIds,
   InvoiceStatus,
   KafkaInfrastructure,
   OrderApproveOrCancelArgs,
@@ -14,13 +16,21 @@ import {
   ResponseResults,
   ResultMessage,
   Subjects,
-  UserDto
+  UserDto,
+  GetOrderArgs,
+  EventPublisherDecorator,
+  eventPublisherConfig
 } from '@invoice-hub/common';
 
+import { buildKafkaRequestOptionsHelper } from 'application/helpers/kafka-request.helper';
 import { OrderRepository } from 'domain/repositories/order.repository';
+import { Order } from 'domain/entities/order.entity';
 
 export interface IOrderService {
+  initialize (): Promise<void>;
   get (query: GetQueryResultsArgs): Promise<ResponseResults<OrderDto>>;
+  getById (args: GetOrderArgs): Promise<ResponseResults<OrderDto>>;
+  getBy (message: string): Promise<OrderDto>;
   createOrder(currentUser: UserDto, args: CreateOrderArgs): Promise<ResponseResults<OrderDto>>;
   approveOrder(orderId: string): Promise<ResponseResults<OrderDto>>;
   cancelOrder(orderId: string): Promise<ResponseResults<OrderDto>>;
@@ -28,9 +38,17 @@ export interface IOrderService {
 
 export class OrderService implements IOrderService {
   private orderRepository: OrderRepository;
+  private kafka: KafkaInfrastructure;
 
   constructor () {
     this.orderRepository = Container.get(OrderRepository);
+    this.kafka = Container.get(KafkaInfrastructure);
+  }
+
+  async initialize () {
+    await this.kafka.subscribe({
+      topicName: Subjects.FETCH_ORDER_REQUEST, handler: this.getBy.bind(this), options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
+    });
   }
 
   @RedisDecorator<OrderDto>(redisCacheConfig.ORDER_LIST)
@@ -40,11 +58,37 @@ export class OrderService implements IOrderService {
     return { payloads, total, result: ResultMessage.SUCCESS };
   }
 
+  async getById (args: GetOrderArgs) {
+    const order = await this.orderRepository.findOneByOrFail({ id: args.id });
+
+    const orderDto = plainToInstance(OrderDto, order, { excludeExtraneousValues: true });
+    const options = buildKafkaRequestOptionsHelper(order);
+
+    const [userResponse] = await this.kafka.requestResponse(options);
+
+    const user = JSON.parse(userResponse);
+    const payload = { ...orderDto, user };
+
+    return { payload, result: ResultMessage.SUCCESS };
+  }
+
+  @EventPublisherDecorator(eventPublisherConfig.ORDER_GET_BY)
+  async getBy (message: string) {
+    const { message: request } = JSON.parse(message);
+    const { orderId } = JSON.parse(request);
+
+    const order = await this.orderRepository.findOneByOrFail({ id: orderId });
+    const orderDto = plainToInstance(OrderDto, order, { excludeExtraneousValues: true });
+
+    return orderDto;
+  }
+
   async createOrder ({ id }: UserDto, args: CreateOrderArgs) {
     const order = this.orderRepository.create({ ...args, userId: id, status: OrderStatus.PENDING });
-    await this.orderRepository.save(order);
+    const newOrder = await this.orderRepository.save(order);
+    const payload = plainToInstance(OrderDto, newOrder, { excludeExtraneousValues: true });
 
-    return { result: ResultMessage.SUCCESS };
+    return { payload, result: ResultMessage.SUCCESS };
   }
 
   async approveOrder (orderId: string) {
@@ -66,9 +110,15 @@ export class OrderService implements IOrderService {
     order.status = newOrderStatus;
 
     await this.orderRepository.save(order);
-    const invoiceArgs = { ...args, totalAmount: order.totalAmount, userId: order.userId } as GenerateInvoiceArgs;
-    await KafkaInfrastructure.publish(Subjects.INVOICE_GENERATE, JSON.stringify(invoiceArgs));
+    await this.handleInvoiceGeneration(args, order);
 
-    return { result: ResultMessage.SUCCESS };
+    const payload = plainToInstance(OrderDto, order, { excludeExtraneousValues: true });
+
+    return { payload, result: ResultMessage.SUCCESS };
+  }
+
+  @EventPublisherDecorator(eventPublisherConfig.ORDER_INVOICE_GENERATE)
+  private async handleInvoiceGeneration (args: OrderApproveOrCancelArgs, order: Order) {
+    return { ...args, totalAmount: order.totalAmount, userId: order.userId } as GenerateInvoiceArgs;
   }
 }

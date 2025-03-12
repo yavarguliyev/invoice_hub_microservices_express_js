@@ -2,7 +2,16 @@ import { Container } from 'typedi';
 import { useContainer as typeormUseContainer } from 'typeorm';
 import { useContainer as routingControllersUseContainer } from 'routing-controllers';
 import {
-  ContainerHelper, registerService, GlobalErrorHandlerMiddleware, ContainerItems, DbConnectionInfrastructure, getDataSourceConfig, ServicesName
+  ContainerHelper,
+  registerService,
+  GlobalErrorHandlerMiddleware,
+  ContainerItems,
+  DbConnectionInfrastructure,
+  getDataSourceConfig,
+  KafkaInfrastructure,
+  ClientIds,
+  RedisInfrastructure,
+  GroupIds
 } from '@invoice-hub/common';
 
 import { InvoicesController } from 'api/v1/invoices.controller';
@@ -15,10 +24,20 @@ export function configureContainers () {
   routingControllersUseContainer(Container);
 };
 
-export async function configureRepositories () {
-  const dataSource = DbConnectionInfrastructure.create({ serviceName: ServicesName.INVOICE_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Invoice]) });
+export async function configureInfrastructures () {
+  const kafka = new KafkaInfrastructure({ clientId: ClientIds.INVOICE_SERVICE, groupId: GroupIds.INVOICE_SERVICE_GROUP });
+  await kafka.initialize();
+
+  const redis = new RedisInfrastructure();
+  await redis.initialize({ clientId: ClientIds.INVOICE_SERVICE });
+
+  const db = new DbConnectionInfrastructure();
+  const dataSource = await db.create({ clientId: ClientIds.INVOICE_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Invoice]) });
   await dataSource.initialize();
 
+  Container.set(KafkaInfrastructure, kafka);
+  Container.set(RedisInfrastructure, redis);
+  Container.set(DbConnectionInfrastructure, dataSource);
   Container.set(InvoiceRepository, dataSource.getRepository(Invoice));
 };
 
@@ -29,8 +48,7 @@ export function configureMiddlewares () {
 export function configureControllersAndServices () {
   registerService({ id: ContainerItems.IInvoiceService, service: InvoiceService });
 
-  ContainerHelper
-    .registerController(InvoicesController);
+  ContainerHelper.registerController(InvoicesController);
 };
 
 export async function configureKafkaServices () {

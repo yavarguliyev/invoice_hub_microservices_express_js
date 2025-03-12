@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { config } from 'dotenv';
 import http from 'http';
-import { LoggerTracerInfrastructure, handleProcessSignals, appConfig, ServicesName, ExpressServerInfrastructure } from '@invoice-hub/common';
+import { LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ExpressServerInfrastructure, getErrorMessage } from '@invoice-hub/common';
 
 import { controllers, proxies } from 'api';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
@@ -16,7 +16,8 @@ const initializeDependencyInjections = async (): Promise<void> => {
 };
 
 const initializeServer = async (): Promise<http.Server> => {
-  const app = await ExpressServerInfrastructure.get(ServicesName.API_GATEWAY, { controllers, proxies });
+  const appServer = new ExpressServerInfrastructure();
+  const app = await appServer.get({ clientId: ClientIds.API_GATEWAY, controllers, proxies });
   const server = http.createServer(app);
 
   server.keepAliveTimeout = appConfig.KEEP_ALIVE_TIMEOUT;
@@ -38,23 +39,23 @@ const main = async (): Promise<void> => {
     const port = appConfig.PORT;
 
     startServer(appServer, port);
-
     handleProcessSignals({ shutdownCallback: GracefulShutdownHelper.shutDown.bind(GracefulShutdownHelper), callbackArgs: [appServer] });
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+  } catch (error) {
+    LoggerTracerInfrastructure.log(`Error during initialization: ${getErrorMessage(error)}`, 'error');
 
-    LoggerTracerInfrastructure.log(`Error during initialization: ${errorMessage}`, 'error');
     process.exit(1);
   }
 };
 
-process.on('uncaughtException', () => {
-  LoggerTracerInfrastructure.log('Uncaught exception, exiting process', 'error');
+process.on('uncaughtException', (error) => {
+  LoggerTracerInfrastructure.log(`Uncaught exception: ${getErrorMessage(error)}`, 'error');
+
   process.exit(1);
 });
 
-process.on('unhandledRejection', () => {
-  LoggerTracerInfrastructure.log('Unhandled rejection, exiting process', 'error');
+process.on('unhandledRejection', (reason) => {
+  LoggerTracerInfrastructure.log(`Unhandled rejection: ${getErrorMessage(reason)}`, 'error');
+
   process.exit(1);
 });
 

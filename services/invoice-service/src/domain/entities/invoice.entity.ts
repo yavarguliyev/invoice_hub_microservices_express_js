@@ -1,8 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import { IsString, Length, IsNumber, IsEnum, IsUUID, IsOptional } from 'class-validator';
-import { Entities, InvoiceStatus } from '@invoice-hub/common';
-
-import { BaseEntity } from 'domain/entities/base.entity';
+import { Entities, InvoiceStatus, BaseEntity } from '@invoice-hub/common';
 
 @Entity(Entities.INVOICE)
 export class Invoice extends BaseEntity {

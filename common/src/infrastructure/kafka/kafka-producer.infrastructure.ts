@@ -1,6 +1,8 @@
 import { Kafka, Producer, Partitioners, Admin } from 'kafkajs';
 
-import { LoggerTracerInfrastructure } from '../logger-tracer.infrastructure';
+import { LoggerTracerInfrastructure } from '../logging/logger-tracer.infrastructure';
+import { getErrorMessage } from '../../application/helpers/utility-functions.helper';
+import { KafkaPublisherOptions, KafkaTopicCreationOptions } from '../../domain/interfaces/kafka-request-options.interface';
 
 export class KafkaProducerInfrastructure {
   private producer: Producer;
@@ -11,35 +13,27 @@ export class KafkaProducerInfrastructure {
     this.admin = this.kafka.admin();
   }
 
-  async connect (): Promise<void> {
+  async connect () {
     await this.producer.connect();
   }
 
-  async publish (topicName: string, message: string): Promise<void> {
-    try {
-      await this.producer.send({ topic: topicName, messages: [{ value: message }] });
-      LoggerTracerInfrastructure.log(`Message sent to topic ${topicName}`);
-    } catch (error) {
-      LoggerTracerInfrastructure.log(`Error creating topic ${topicName}: ${error}`);
-    }
+  async publish ({ topicName, message }: KafkaPublisherOptions) {
+    await this.producer.send({ topic: topicName, messages: [{ value: message }] });
+    LoggerTracerInfrastructure.log(`Message sent to topic ${topicName}`);
   }
 
-  async createTopic (topicName: string): Promise<void> {
-    if (!this.kafka) {
-      throw new Error('Kafka is not initialized');
-    }
-
+  async createTopic ({ topicName }: KafkaTopicCreationOptions) {
     try {
       const existingTopics = await this.admin.listTopics();
       if (!existingTopics.includes(topicName)) {
         await this.admin.createTopics({ topics: [{ topic: topicName, numPartitions: 3, replicationFactor: 2 }], validateOnly: false });
       }
     } catch (error) {
-      LoggerTracerInfrastructure.log(`Error creating topic ${topicName}: ${error}`, 'error');
+      LoggerTracerInfrastructure.log(`Error creating topic ${topicName}: ${getErrorMessage(error)}`, 'error');
     }
   }
 
-  async disconnect (): Promise<void> {
+  async disconnect () {
     await this.producer.disconnect();
   }
 }

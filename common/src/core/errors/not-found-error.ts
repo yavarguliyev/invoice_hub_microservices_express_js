@@ -1,5 +1,5 @@
 import { CustomError } from './custom-error';
-import { NotFoundDetails } from '../../domain/interfaces/not-found-details.interface';
+import { NotFoundDetails } from '../../domain/interfaces/error-request-details.interface';
 
 class NotFoundError extends CustomError<NotFoundDetails> {
   statusCode = 404;

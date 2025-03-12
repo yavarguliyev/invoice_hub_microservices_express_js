@@ -1,5 +1,6 @@
-import { RetryOptions } from '../../domain/interfaces/retry-options.interface';
-import { LoggerTracerInfrastructure } from '../../infrastructure/logger-tracer.infrastructure';
+import { getErrorMessage } from './utility-functions.helper';
+import { RetryOptions } from '../../domain/interfaces/utility-functions-options.interface';
+import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
 
 export class RetryHelper {
   static async executeWithRetry<T> (fn: () => Promise<T>, { serviceName, maxRetries, retryDelay } : RetryOptions): Promise<T> {
@@ -7,14 +8,17 @@ export class RetryHelper {
       try {
         LoggerTracerInfrastructure.log(`${serviceName} disconnected successfully`, 'info');
         return await fn();
-      } catch (err) {
-        LoggerTracerInfrastructure.log(
-          attempt < maxRetries
-            ? `${serviceName} shutdown failed, retrying... (${attempt}/${maxRetries})`
-            : `${serviceName} shutdown failed after ${maxRetries} attempts: ${err}`,
-          'error'
-        );
-        if (attempt === maxRetries) throw err;
+      } catch (error) {
+        const retryingMessage = `${serviceName} shutdown failed, retrying... (${attempt}/${maxRetries})`;
+        const finalFailureMessage = `${serviceName} shutdown failed after ${maxRetries} attempts: ${getErrorMessage(error)}`;
+        const logMessage = attempt < maxRetries ? retryingMessage : finalFailureMessage;
+
+        LoggerTracerInfrastructure.log(logMessage, 'error');
+
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
         await this.delay(retryDelay);
       }
     }

@@ -1,7 +1,7 @@
 import { ValidationError } from 'express-validator';
 
 import { CustomError } from './custom-error';
-import { isValidationErrorWithParam, ValidationErrorDetails } from '../../domain/interfaces/validation-error-details.interface';
+import { isValidationErrorWithParam, ValidationErrorDetails } from '../../domain/interfaces/error-request-details.interface';
 
 class RequestValidationError extends CustomError<ValidationErrorDetails[]> {
   statusCode = 400;

@@ -1,5 +1,5 @@
 import { CustomError } from './custom-error';
-import { DatabaseConnectionDetails } from '../../domain/interfaces/database-connection-details.interface';
+import { DatabaseConnectionDetails } from '../../domain/interfaces/error-request-details.interface';
 
 class DatabaseConnectionError extends CustomError<DatabaseConnectionDetails> {
   statusCode = 500;
