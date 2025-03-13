@@ -1,6 +1,6 @@
 # Project Overview
 
-##### This Node.js application is a monolithic architecture designed with extensibility and maintainability in mind. It uses TypeScript for strong typing and integrates several key technologies such as ExpressJS, PostgreSQL, Redis, REST API, clustering, and worker threads to ensure optimal performance. The application also applies multiple design patterns and software engineering principles to promote clean, maintainable, and testable code.
+##### This Node.js application is built using a microservices architecture, designed for scalability, modularity, and maintainability. It uses TypeScript for strong typing and integrates key technologies such as ExpressJS, PostgreSQL, Redis, Apache Kafka, REST APIs, and Docker to ensure optimal performance and flexibility in scaling individual services. The application applies multiple design patterns and software engineering principles to promote clean, maintainable, and testable code.
 
 ---
 
@@ -8,7 +8,7 @@
 
 1. Features
 2. Architecture Overview
-3. Interaction Flow in DDD and Architecture
+3. Interaction Flow in Microservices and Architecture
 4. Domain-Driven Design Principles and Patterns
 5. Design Patterns
 6. Principles
@@ -76,51 +76,51 @@
 
 # 🏗 Architecture Overview
 
-![Architecture Overview](./image/logical-diagram.png)
+![Architecture Overview](./image/logical-diagram.png.png)
 
 ---
 
-#### This Node.js application follows a monolithic architecture that is modular and scalable. It uses the principles of Domain-Driven Design (DDD) to ensure that the codebase is well-organized and follows the business domain logic.
+#### This application follows a microservices architecture where each core business function (Order Management, User Management, etc.) is handled by an independent service. This ensures better scalability, fault isolation, and maintainability.
 
-* Monolithic: While designed as a monolithic application, it’s built with an architecture that supports easy splitting into microservices should the need arise.
-* Modular: The application is divided into clear modules like orders, users, invoices, etc., each with its own responsibility. This makes it easy to extend the system with new features.
-* Layered Architecture: It follows a typical layered architecture pattern, separating concerns into layers such as the API layer (controllers), service layer, data access layer (repositories), and domain layer (models).
-* Asynchronous Processing: Worker threads and Redis are used for asynchronous processing, ensuring that long-running tasks (like email notifications) don’t block the main application flow.
-* Event-Driven: The application utilizes RabbitMQ to handle domain events (e.g., order updates, user creation) asynchronously, enabling decoupled communication between components.
+* Microservices: Each business domain (Orders, Users, Invoices) is isolated into its own service, allowing independent scaling and development.
+* Modular Design: Each service follows clear boundaries and can be developed/deployed independently.
+* Event-Driven Communication: Services interact asynchronously via Kafka events (e.g., order creation, user updates).
+* Asynchronous Processing: Redis is used for caching and message queues, ensuring non-blocking operations.
+* Load Balancing: The system scales horizontally using Docker, Kubernetes, and Nginx.
 
 ---
 
-# 🧩🔄⚙️🌐 Interaction Flow in DDD and Architecture
+# 🧩🔄⚙️🌐 Interaction Flow in Microservices
 
 
-![Interaction Flow in DDD and Architecture](./image/interaction-diagram.png)
+![Interaction Flow in DDD and Microservices](./image/interaction-diagram.png)
 
 ---
 
 ## 1. Domain Layer:
 
-* The core domain logic is housed here, where entities like Order, User, and Invoice live. They represent the key concepts in the business domain.
-* Operations like changing an order status or creating a user are encapsulated within these entities.
+* Houses the core business logic for each microservice (Orders, Users, Invoices).
+* Encapsulates operations like changing order statuses, creating users, and generating invoices.
 
-## 2. Application Layer:
+## 2. Service Layer:
 
-* Services such as OrderService and UserService interact with domain entities to perform operations. They use repositories for data persistence.
-* This layer uses patterns like Command and Observer to handle business logic and notify the system of changes (e.g., notifying the admins when an order is created).
+* Handles interactions between the domain logic and infrastructure.
+* Uses repositories for data persistence and Kafka for event-driven communication.
 
 ## 3. Infrastructure Layer:
 
-* Handles the technical details such as PostgreSQL, Redis, RabbitMQ, and email notifications.
-* Redis is used to cache frequently accessed data, reducing load on the database.
-* Worker threads handle tasks asynchronously, such as background processing for email notifications or batch updates.
+* Manages PostgreSQL, Redis, Kafka, and email notifications.
+* Redis is leveraged for caching frequently accessed data.
 
-## 4. API Layer:
+## 4. API Gateway:
 
-* Exposes REST API endpoints to clients, interacting with the application layer to perform the required business logic.
-* Uses ExpressJS and Swagger for routing and API documentation.
+* Routes client requests to the appropriate microservice.
+* Can aggregate responses from multiple services, reducing client complexity.
 
 ## 5. Event-Driven Communication:
 
-* When a significant change occurs (like order approval or user creation), events are published to RabbitMQ to inform other systems or services.
+* Kafka publishes and consumes events for system-wide updates.
+* Example: When an order is approved, a Kafka event triggers the invoice generation process.
 
 ---
 
@@ -128,17 +128,14 @@
 
 * REST API with ExpressJS & TypeScript
 * PostgreSQL with ORM for database management
-* Worker Threads to handle async processing
 * Redis for caching and queue management
 * Dependency Injection using typedi
-* Microservices-ready architecture
-* Event-driven system with RabbitMQ
+* Event-driven architecture with Kafka for inter-service communication
+* Microservices architecture for scalability
 * Robust Logging & Monitoring
 * Unit & E2E Testing for reliability
 * Security Best Practices
 * Scalable & Maintainable Codebase
-* Clustering for load balancing and high availability
-* Domain-Driven Design Principles and Patterns
 
 ---
 
@@ -148,58 +145,47 @@
 
 ## 1. Singleton Pattern
 
-* Used for: Managing the database connection and the Redis cache manager.
-* Why: Ensures that only one instance of the database connection or Redis client is created throughout the application, reducing the overhead and promoting reuse.
+* Used for managing database connections and Redis cache to ensure only one instance is created.
 
 ## 2. Factory Pattern
 
-* Used for: Creating various service instances based on the application’s configuration.
-* Why: Simplifies object creation and reduces tight coupling between components. Used for creating different database service objects or models.
+* Encapsulates object creation, allowing for dynamic service instantiation.
 
 ## 3. Dependency Injection (DI)
 
-* Used for: Injecting dependencies like services, repositories, and controllers into other components, e.g., through the TypeDI library.
-* Why: Decouples the components and ensures that each class only knows about the abstractions, not the specific implementations. This makes testing and maintaining the codebase easier.
+* Uses TypeDI to inject dependencies, reducing coupling.
 
 ## 4. Observer Pattern
 
-* Used for: Managing state changes and broadcasting changes to subscribers. This is used in parts of the application that require real-time updates, such as pushing notifications or WebSocket-based messages.
-* Why: Provides an efficient way to notify parts of the application that need to act based on state changes.
+* Ensures real-time updates by notifying services of state changes (e.g., via Kafka events).
 
 ## 5. Strategy Pattern
 
-* Used for: Implementing different querying strategies (e.g., different REST API response structures).
-* Why: Allows switching between different query response strategies without changing the core logic of the application.
+* Allows dynamic switching between querying strategies without modifying core logic.
 
 ## 6. Command Pattern
 
-* Used for: Handling complex workflows or commands like submitting a job to Redis or performing CRUD operations in a transactional manner.
-* Why: Encapsulates requests as objects, allowing parameterization and decoupling of command execution from the client.
+* Encapsulates complex workflows like submitting jobs to Redis queues.
 
 ## 7. Decorator Pattern
 
-* Used for: Enhancing the functionality of services and controllers dynamically.
-* Why: Allows adding new behavior (e.g., logging, error handling) without modifying existing code, promoting a clean and extendable design.
+* Adds features like caching and event publishing without modifying core functionality.
 
 ## 8. Proxy Pattern
 
-* Used for: Implementing caching and rate-limiting mechanisms in front of certain APIs.
-* Why: Helps optimize system performance by controlling access to external services, ensuring that expensive operations are cached or rate-limited.
+* Implements caching and rate-limiting to optimize API calls.
 
 ## 9. Repository Pattern
 
-* Used for: Abstracting the data access layer to provide a more manageable and flexible way to interact with the database.
-* Why: Helps decouple database logic from business logic, making it easier to change or optimize data access strategies without impacting the rest of the application.
+* Abstracts database interactions, ensuring a clean separation from business logic.
 
 ## 10. Builder Pattern
 
-* Used for: Constructing complex objects like invoices, user profiles, and report generation in a systematic way.
-* Why: Provides a flexible solution for constructing complex objects step by step, avoiding constructor overloading or complex factory methods.
+* Constructs complex objects like invoices and user profiles in a systematic way.
 
 ## 11. Publisher-Subscriber Pattern
 
-* Used for: Domain events trigger integration events that are published to RabbitMQ.
-* Why: Enables asynchronous communication between components through event publishing and handling.
+* Uses Kafka for event-driven messaging, allowing services to communicate asynchronously.
 
 ---
 
@@ -239,16 +225,14 @@
 
 # 💻 Technologies
 
-* Node.js: JavaScript runtime for building scalable, event-driven network applications.
-* ExpressJS: Minimalist web framework for Node.js that simplifies routing and middleware management.
-* TypeScript: A statically typed superset of JavaScript that enhances development with compile-time checks.
-* PostgreSQL: Robust relational database for structured data storage, ensuring reliability and ACID compliance.
-* Redis: High-performance, in-memory data structure store, used for caching and managing job queues.
-* Clustering & Worker Threads: Leverages multi-core processors for concurrency, ensuring non-blocking performance.
-* TypeDI: A dependency injection library that promotes clean architecture and scalable dependency management.
-* Swagger: Tool for automatically generating RESTful API documentation, improving collaboration and client integration.
-* Postman Collection: Pre-configured Postman collection for API testing and validation.
-* DataLoader Implementation: Optimizes database queries by batching and caching requests, addressing the N+1 query problem and improving performance in high-volume environments.
+* Node.js & ExpressJS – Backend framework.
+* TypeScript – Statically typed JavaScript.
+* PostgreSQL – Relational database with ORM.
+* Redis – Caching and message queues.
+* Kafka – Event-driven microservices communication.
+* TypeDI – Dependency Injection.
+* Docker & Kubernetes – Containerization & orchestration.
+* DataLoader – Optimized database queries.
 
 ---
 
@@ -262,12 +246,13 @@
 
 ### For Application Usage
 
-* Node.js (v23.x or higher)
-* TypeScript
-* PostgreSQL
-* Redis
-* RabbitMQ
-* yarn
+* ✅ Node.js (v23.x or higher)
+* ✅ TypeScript
+* ✅ PostgreSQL
+* ✅ Redis
+* ✅ Kafka
+* ✅ Docker & Kubernetes
+* ✅ yarn
 
 ---
 
@@ -276,7 +261,7 @@
 ## 1. Clone the repository:
 
 ```javascript
-git clone git@github.com:yavarguliyev/invoices-hub.git
+git clone git@github.com:yavarguliyev/invoice_hub_microservices.git
 ```
 
 ## 2. Set Up Environment: 
@@ -306,34 +291,6 @@ bash remove.sh
 * The .env file located in {main_root}/deployment/dev/.env is required for configuration.
 * You can copy the example file (.env.example) to create your own .env file.
 
-## Additional Setup (Optional)
-
-#### If you need to perform additional tasks like database migrations before starting the application (e.g., before running yarn start), you will need to uncomment and adjust the following part in the docker-compose.yml file:
-
-```javascript
-services:
-  # api:
-  #   container_name: invoices_hub
-  #   image: invoice_hub
-  #   build:
-  #     context: ../../
-  #     dockerfile: Dockerfile
-  #     args:
-  #       ENV_PATH: ./deployment/dev/.env
-  #   ports:
-  #     - "3000:3000"
-  #   env_file:
-  #     - ./.env
-  #   volumes:
-  #     - ../../invoice_hub:/app/invoice_hub
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #     - rabbitmq
-  #   restart: always
-  #   command: sh -c "yarn mup && yarn start"
-```
-
 ## 3. Install dependencies:
 
 ```javascript
@@ -361,19 +318,17 @@ yarn mdn
 # 📂 Project Structure
 
 ```javascript
-/dist                  # Compiled output of the TypeScript compilation process
-/migrations            # Database migrations
-/src
-├── /api               # Contains controllers for different endpoints
-├── /application       # Contains application-specific services or use cases
-├── /core              # Contains the core logic of the application
-├── /domain            # Contains domain models (entities) and related logic
-├── /infrastructure    # Contains infrastructure-specific files
-├── data-source.ts     # Data source configuration for migrations
-├── index.ts.ts        # Main entry point of the application
-/tests                 # Contains test files (unit and integration tests)
-/types                 # This directory contains any custom type definitions
-└── README.md
+/api-gateway    # Manages API routing.
+/common         # Shared utilities and configs.
+/deployment     # Deployment environment configs.
+├── /dev        # Development environment setup.
+├── /prod       # Production environment setup.
+/services       # Individual service modules
+├── /auth       # Handles authentication logic.
+├── /invoices   # Manages invoice operations.
+├── /orders     # Handles order operations.
+/package.json   # Defines workspaces for modular structure.
+└── README.md   # Project documentation.
 ```
 
 ---
@@ -382,16 +337,10 @@ yarn mdn
 
 #### API documentation is available at:
 
-```javascript
-http://localhost:3000/api-docs/#/
-```
-
-#### Swagger is used for API documentation, allowing developers to explore and test endpoints easily.
-
 #### A Postman collection file is also included for testing API use cases:
 
 ```javascript
-/postman/invoice_hub.postman_collection.json
+/postman/invoice_hub_microservices.postman_collection.json
 ```
 
 # 🚀▶️💻 Running the Application
@@ -410,70 +359,6 @@ yarn start
 yarn test
 ```
 
-# 💻⚙️ PM2 Commands
-
-## View PM2 Status:
-
-#### To check the status of your application running under PM2, use the following command:
-
-```javascript
-yarn pm2:status
-```
-
-## Clean and Restart PM2:
-
-#### To stop all PM2 processes, clean up, and save the current process list:
-
-```javascript
-yarn pm2:clean
-```
-
-#### This will:
-
-* Delete all PM2 processes.
-* Save the PM2 process list.
-* Display the updated status.
-
-## Start the Application with PM2:
-
-#### To start your application using the ecosystem.config.js file, run:
-
-```javascript
-yarn pm2:dev
-```
-
-#### This will launch the application in cluster mode, as defined in your PM2 configuration.
-
-# 🏋️‍♂️ Load Testing
-
-##### To check how many requests your application can handle, follow these steps:
-
-## 1. Start the Application
-#### Make sure the application is running before performing the load test:
-
-```javascript
-yarn start
-```
-
-## 2. Run the Load Test
-#### Once the app is running, execute the following command:
-
-```javascript
-yarn loadtest:dev
-```
-
-### This will send 3,600 requests with 1,200 concurrent users to the healthcheck endpoint.
-
-## Command Breakdown:
-
-* -n 3600: Total number of requests.
-* -c 1200: Number of concurrent users.
-* -k: Enables keep-alive to reuse TCP connections.
-
-# 📊 Interpreting the Results
-
-#### After the test, you'll see a summary of requests per second, response times, and possible failures. This helps assess the system’s performance under heavy load.
-
 ---
 
 # 🛠 Usage
@@ -482,7 +367,7 @@ yarn loadtest:dev
 
 ### 1. Create an Order
 
-#### Endpoint: POST {{URL}}/api/v1/orders
+#### Endpoint: POST {{URL}}/orders/api/v1/orders
 
 ```javascript
 {
@@ -493,13 +378,13 @@ yarn loadtest:dev
 ### 2. Approve the Order
 
 ```javascript
-Endpoint: PATCH {{URL}}/api/v1/orders/{{id}}/approve
+Endpoint: PATCH {{URL}}/orders/api/v1/orders/{{id}}/approve
 ```
 
 ### 3. Cancel the Order
 
 ```javascript
-Endpoint: PATCH {{URL}}/api/v1/orders/{{id}}/cancel
+Endpoint: PATCH {{URL}}/orders/api/v1/orders/{{id}}/cancel
 ```
 
 ---
@@ -516,4 +401,4 @@ Endpoint: PATCH {{URL}}/api/v1/orders/{{id}}/cancel
 
 # 📝 License
 
-#### This project is licensed under the MIT License. See the [LICENSE](https://github.com/yavarguliyev/invoices-hub/blob/master/LICENSE) file for details.
+#### This project is licensed under the MIT License. See the [LICENSE](https://github.com/yavarguliyev/invoice_hub_microservices/blob/master/LICENSE) file for details.
