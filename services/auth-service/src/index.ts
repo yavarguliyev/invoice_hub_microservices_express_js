@@ -6,23 +6,20 @@ import { LoggerTracerInfrastructure, handleProcessSignals, appConfig, ExpressSer
 
 import { controllers } from 'api';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
-import {
-  configureContainers, configureControllersAndServices, configureMiddlewares, configureInfrastructures, configureKafkaServices, configureLifecycleServices
-} from 'application/ioc/bindings';
+import { configureContainers, configureControllersAndServices, configureInfrastructures, configureKafkaServices, configureLifecycleServices } from 'application/ioc/bindings';
 
 config();
 
 const initializeDependencyInjections = async (): Promise<void> => {
   configureContainers();
   await configureInfrastructures();
-  configureMiddlewares();
   configureLifecycleServices();
   configureControllersAndServices();
   await configureKafkaServices();
 };
 
 const initializeServer = async (): Promise<http.Server> => {
-  const appServer = new ExpressServerInfrastructure();
+  const appServer = Container.get(ExpressServerInfrastructure);
   const app = await appServer.get({ clientId: ClientIds.AUTH_SERVICE, controllers });
   const server = http.createServer(app);
 
@@ -40,10 +37,9 @@ const startServer = (httpServer: http.Server, port: number): void => {
 const main = async (): Promise<void> => {
   try {
     await initializeDependencyInjections();
-
     const appServer = await initializeServer();
-    const port = appConfig.PORT;
 
+    const port = appConfig.PORT;
     const gracefulShutdownHelper = Container.get(GracefulShutdownHelper);
 
     handleProcessSignals({ shutdownCallback: gracefulShutdownHelper.shutDown.bind(gracefulShutdownHelper), callbackArgs: [appServer] });

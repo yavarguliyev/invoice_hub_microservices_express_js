@@ -13,7 +13,8 @@ import {
   ClientIds,
   RedisInfrastructure,
   GroupIds,
-  DataLoaderInfrastructure
+  DataLoaderInfrastructure,
+  ExpressServerInfrastructure
 } from '@invoice-hub/common';
 
 import { AuthController } from 'api/v1/auth.controller';
@@ -54,12 +55,10 @@ export async function configureInfrastructures () {
   Container.set(ContainerKeys.ROLE_DATA_LOADER, roleDataLoader);
 };
 
-export function configureMiddlewares () {
-  Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
-};
-
 export function configureLifecycleServices () {
+  Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
   Container.set(GracefulShutdownHelper, new GracefulShutdownHelper());
+  Container.set(ExpressServerInfrastructure, new ExpressServerInfrastructure());
 }
 
 export function configureControllersAndServices () {

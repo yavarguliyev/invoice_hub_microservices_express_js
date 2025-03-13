@@ -22,7 +22,8 @@ import {
   EventPublisherDecorator,
   eventPublisherConfig,
   DataLoaderInfrastructure,
-  ContainerKeys
+  ContainerKeys,
+  RedisCacheInvalidateDecorator
 } from '@invoice-hub/common';
 
 import { buildKafkaRequestOptionsHelper } from 'application/helpers/kafka-request.helper';
@@ -44,7 +45,7 @@ export class OrderService implements IOrderService {
   private _kafka?: KafkaInfrastructure;
   private _orderDtoLoaderById?: DataLoader<string, OrderDto>;
 
-  private get orderRepository (): OrderRepository {
+  private get orderRepository () {
     if (!this._orderRepository) {
       this._orderRepository = Container.get(OrderRepository);
     }
@@ -52,7 +53,7 @@ export class OrderService implements IOrderService {
     return this._orderRepository;
   }
 
-  private get kafka (): KafkaInfrastructure {
+  private get kafka () {
     if (!this._kafka) {
       this._kafka = Container.get(KafkaInfrastructure);
     }
@@ -60,7 +61,7 @@ export class OrderService implements IOrderService {
     return this._kafka;
   }
 
-  private get orderDtoLoaderById (): DataLoader<string, OrderDto> {
+  private get orderDtoLoaderById () {
     if (!this._orderDtoLoaderById) {
       this._orderDtoLoaderById = Container.get<DataLoaderInfrastructure<Order>>(ContainerKeys.ORDER_DATA_LOADER)
         .getDataLoader({ entity: Order, Dto: OrderDto, fetchField: 'id' });
@@ -75,7 +76,7 @@ export class OrderService implements IOrderService {
     });
   }
 
-  @RedisDecorator<OrderDto>(redisCacheConfig.ORDER_LIST)
+  @RedisDecorator(redisCacheConfig.ORDER_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.orderRepository, query, dtoClass: OrderDto });
 
@@ -101,6 +102,7 @@ export class OrderService implements IOrderService {
     return await this.orderDtoLoaderById.load(orderId);
   }
 
+  @RedisCacheInvalidateDecorator(redisCacheConfig.ORDER_LIST)
   async createOrder ({ id }: UserDto, args: CreateOrderArgs) {
     const order = this.orderRepository.create({ ...args, userId: id, status: OrderStatus.PENDING });
     const newOrder = await this.orderRepository.save(order);

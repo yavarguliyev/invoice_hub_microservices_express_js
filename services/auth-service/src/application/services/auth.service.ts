@@ -17,7 +17,7 @@ export interface IAuthService {
 export class AuthService implements IAuthService {
   private _userRepository?: UserRepository;
 
-  private get userRepository (): UserRepository {
+  private get userRepository () {
     if (!this._userRepository) {
       this._userRepository = Container.get(UserRepository);
     }

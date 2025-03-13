@@ -13,7 +13,8 @@ import {
   RedisInfrastructure,
   GroupIds,
   DataLoaderInfrastructure,
-  ContainerKeys
+  ContainerKeys,
+  ExpressServerInfrastructure
 } from '@invoice-hub/common';
 
 import { InvoicesController } from 'api/v1/invoices.controller';
@@ -46,12 +47,10 @@ export async function configureInfrastructures () {
   Container.set(ContainerKeys.INVOICE_DATA_LOADER, invoiceDataLoader);
 };
 
-export function configureMiddlewares () {
-  Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
-};
-
 export function configureLifecycleServices () {
+  Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
   Container.set(GracefulShutdownHelper, new GracefulShutdownHelper());
+  Container.set(ExpressServerInfrastructure, new ExpressServerInfrastructure());
 }
 
 export function configureControllersAndServices () {

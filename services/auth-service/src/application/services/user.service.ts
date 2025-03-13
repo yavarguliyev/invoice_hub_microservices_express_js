@@ -32,7 +32,7 @@ export class UserService implements IUserService {
   private _kafka?: KafkaInfrastructure;
   private _userDtoLoaderById?: DataLoader<string, UserDto>;
 
-  private get userRepository (): UserRepository {
+  private get userRepository () {
     if (!this._userRepository) {
       this._userRepository = Container.get(UserRepository);
     }
@@ -40,7 +40,7 @@ export class UserService implements IUserService {
     return this._userRepository;
   }
 
-  private get kafka (): KafkaInfrastructure {
+  private get kafka () {
     if (!this._kafka) {
       this._kafka = Container.get(KafkaInfrastructure);
     }
@@ -48,7 +48,7 @@ export class UserService implements IUserService {
     return this._kafka;
   }
 
-  private get userDtoLoaderById (): DataLoader<string, UserDto> {
+  private get userDtoLoaderById () {
     if (!this._userDtoLoaderById) {
       this._userDtoLoaderById = Container.get<DataLoaderInfrastructure<User>>(ContainerKeys.USER_DATA_LOADER)
         .getDataLoader({ entity: User, Dto: UserDto, fetchField: 'id', relations: [{ relation: 'role', relationDto: RoleDto }] });
@@ -63,7 +63,7 @@ export class UserService implements IUserService {
     });
   }
 
-  @RedisDecorator<UserDto>(redisCacheConfig.USER_LIST)
+  @RedisDecorator(redisCacheConfig.USER_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({
       repository: this.userRepository, query, dtoClass: UserDto, relatedEntity: { RelatedDtoClass: RoleDto, relationField: 'role' }

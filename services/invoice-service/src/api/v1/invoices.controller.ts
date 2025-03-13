@@ -6,10 +6,14 @@ import { IInvoiceService } from 'application/services/invoice.service';
 @Authorized([Roles.GlobalAdmin, Roles.Contributor, Roles.Contributor, Roles.Contributor])
 @JsonController(createVersionedRoute({ controllerPath: '/invoices', version: 'v1' }))
 export class InvoicesController {
-  private invoiceService: IInvoiceService;
+  private _invoiceService: IInvoiceService;
 
-  constructor () {
-    this.invoiceService = ContainerHelper.get<IInvoiceService>(ContainerItems.IInvoiceService);
+  private get invoiceService (): IInvoiceService {
+    if (!this._invoiceService) {
+      this._invoiceService = ContainerHelper.get<IInvoiceService>(ContainerItems.IInvoiceService);
+    }
+
+    return this._invoiceService;
   }
 
   @Get('/')

@@ -94,9 +94,9 @@ export const queryResults = async <T extends ObjectLiteral, DTO, RelatedDTO = un
   return { payloads: dtos, total };
 };
 
-export function getErrorMessage (error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
+export const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : String(error);
+};
 
 export const prepareMessage = (result: unknown, args: unknown[]) => {
   const [firstArg] = args;

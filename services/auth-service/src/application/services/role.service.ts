@@ -10,7 +10,7 @@ export interface IRoleService {
 export class RoleService implements IRoleService {
   private _roleRepository?: RoleRepository;
 
-  private get roleRepository (): RoleRepository {
+  private get roleRepository () {
     if (!this._roleRepository) {
       this._roleRepository = Container.get(RoleRepository);
     }
@@ -18,7 +18,7 @@ export class RoleService implements IRoleService {
     return this._roleRepository;
   }
 
-  @RedisDecorator<RoleDto>(redisCacheConfig.ROLE_LIST)
+  @RedisDecorator(redisCacheConfig.ROLE_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.roleRepository, query, dtoClass: RoleDto });
 

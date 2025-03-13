@@ -6,10 +6,14 @@ import { SigninArgs } from 'core/inputs/signin.args';
 
 @JsonController(createVersionedRoute({ controllerPath: '/auth', version: 'v1' }))
 export class AuthController {
-  private authService: IAuthService;
+  private _authService: IAuthService;
 
-  constructor () {
-    this.authService = ContainerHelper.get<IAuthService>(ContainerItems.IAuthService);
+  private get authService (): IAuthService {
+    if (!this._authService) {
+      this._authService = ContainerHelper.get<IAuthService>(ContainerItems.IAuthService);
+    }
+
+    return this._authService;
   }
 
   @Post('/signin')

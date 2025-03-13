@@ -6,10 +6,14 @@ import { IRoleService } from 'application/services/role.service';
 @Authorized([Roles.GlobalAdmin])
 @JsonController(createVersionedRoute({ controllerPath: '/roles', version: 'v1' }))
 export class RolesController {
-  private roleService: IRoleService;
+  private _roleService: IRoleService;
 
-  constructor () {
-    this.roleService = ContainerHelper.get<IRoleService>(ContainerItems.IRoleService);
+  private get roleService (): IRoleService {
+    if (!this._roleService) {
+      this._roleService = ContainerHelper.get<IRoleService>(ContainerItems.IRoleService);
+    }
+
+    return this._roleService;
   }
 
   @Get('/')

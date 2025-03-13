@@ -36,7 +36,7 @@ export class InvoiceService implements IInvoiceService {
   private _kafka?: KafkaInfrastructure;
   private _invoiceDtoLoaderById?: DataLoader<string, InvoiceDto>;
 
-  private get invoiceRepository (): InvoiceRepository {
+  private get invoiceRepository () {
     if (!this._invoiceRepository) {
       this._invoiceRepository = Container.get(InvoiceRepository);
     }
@@ -44,7 +44,7 @@ export class InvoiceService implements IInvoiceService {
     return this._invoiceRepository;
   }
 
-  private get kafka (): KafkaInfrastructure {
+  private get kafka () {
     if (!this._kafka) {
       this._kafka = Container.get(KafkaInfrastructure);
     }
@@ -52,7 +52,7 @@ export class InvoiceService implements IInvoiceService {
     return this._kafka;
   }
 
-  private get invoiceDtoLoaderById (): DataLoader<string, InvoiceDto> {
+  private get invoiceDtoLoaderById () {
     if (!this._invoiceDtoLoaderById) {
       this._invoiceDtoLoaderById = Container.get<DataLoaderInfrastructure<Invoice>>(ContainerKeys.INVOICE_DATA_LOADER)
         .getDataLoader({ entity: Invoice, Dto: InvoiceDto, fetchField: 'id' });
@@ -67,7 +67,7 @@ export class InvoiceService implements IInvoiceService {
     });
   }
 
-  @RedisDecorator<InvoiceDto>(redisCacheConfig.INVOICE_LIST)
+  @RedisDecorator(redisCacheConfig.INVOICE_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.invoiceRepository, query, dtoClass: InvoiceDto });
 

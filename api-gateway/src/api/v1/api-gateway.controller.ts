@@ -5,10 +5,14 @@ import { IApiService } from 'application/services/api.service';
 
 @JsonController('/')
 export class ApiGatewayController {
-  private apiService: IApiService;
+  private _apiService: IApiService;
 
-  constructor () {
-    this.apiService = ContainerHelper.get<IApiService>(ContainerItems.IApiService);
+  private get apiService (): IApiService {
+    if (!this._apiService) {
+      this._apiService = ContainerHelper.get<IApiService>(ContainerItems.IApiService);
+    }
+
+    return this._apiService;
   }
 
   @Get('/')
