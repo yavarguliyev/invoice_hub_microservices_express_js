@@ -76,7 +76,7 @@
 
 # 🏗 Architecture Overview
 
-![Architecture Overview](./image/logical-diagram.png.png)
+![Architecture Overview](./image/logical-diagram.png)
 
 ---
 
