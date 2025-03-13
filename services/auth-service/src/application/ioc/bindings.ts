@@ -6,17 +6,20 @@ import {
   registerService,
   GlobalErrorHandlerMiddleware,
   ContainerItems,
+  ContainerKeys,
   DbConnectionInfrastructure,
   KafkaInfrastructure,
   getDataSourceConfig,
   ClientIds,
   RedisInfrastructure,
-  GroupIds
+  GroupIds,
+  DataLoaderInfrastructure
 } from '@invoice-hub/common';
 
 import { AuthController } from 'api/v1/auth.controller';
 import { RolesController } from 'api/v1/roles.controller';
 import { UsersController } from 'api/v1/users.controller';
+import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
 import { AuthService } from 'application/services/auth.service';
 import { RoleService } from 'application/services/role.service';
 import { IUserService, UserService } from 'application/services/user.service';
@@ -37,26 +40,42 @@ export async function configureInfrastructures () {
   const redis = new RedisInfrastructure();
   await redis.initialize({ clientId: ClientIds.AUTH_SERVICE });
 
-  const db = new DbConnectionInfrastructure();
-  const dataSource = await db.create({ clientId: ClientIds.AUTH_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Role, User]) });
+  const dbConnection = new DbConnectionInfrastructure();
+  const dataSource = await dbConnection.create({ clientId: ClientIds.AUTH_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Role, User]) });
   await dataSource.initialize();
+
+  const roleDataLoader = new DataLoaderInfrastructure<Role>(dataSource.getRepository(Role));
+  const userDataLoader = new DataLoaderInfrastructure<User>(dataSource.getRepository(User));
 
   Container.set(KafkaInfrastructure, kafka);
   Container.set(RedisInfrastructure, redis);
-  Container.set(DbConnectionInfrastructure, dataSource);
-
-  Container.set(RoleRepository, dataSource.getRepository(Role));
-  Container.set(UserRepository, dataSource.getRepository(User));
+  Container.set(DbConnectionInfrastructure, dbConnection);
+  Container.set(ContainerKeys.USER_DATA_LOADER, userDataLoader);
+  Container.set(ContainerKeys.ROLE_DATA_LOADER, roleDataLoader);
 };
 
 export function configureMiddlewares () {
   Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
 };
 
+export function configureLifecycleServices () {
+  Container.set(GracefulShutdownHelper, new GracefulShutdownHelper());
+}
+
 export function configureControllersAndServices () {
   registerService({ id: ContainerItems.IAuthService, service: AuthService });
   registerService({ id: ContainerItems.IRoleService, service: RoleService });
   registerService({ id: ContainerItems.IUserService, service: UserService });
+
+  const dbConnection = Container.get<DbConnectionInfrastructure>(DbConnectionInfrastructure);
+  const dataSource = dbConnection.getDataSource({ clientId: ClientIds.AUTH_SERVICE });
+
+  if (!dataSource) {
+    throw new Error('Database connection is not initialized.');
+  }
+
+  Container.set(RoleRepository, dataSource.getRepository(Role));
+  Container.set(UserRepository, dataSource.getRepository(User));
 
   ContainerHelper
     .registerController(AuthController)
@@ -66,5 +85,8 @@ export function configureControllersAndServices () {
 
 export async function configureKafkaServices () {
   const userService = ContainerHelper.get<IUserService>(ContainerItems.IUserService);
-  await userService.initialize();
+
+  if (typeof userService.initialize === 'function') {
+    await userService.initialize();
+  }
 };

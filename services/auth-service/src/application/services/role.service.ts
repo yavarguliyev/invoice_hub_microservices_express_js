@@ -8,10 +8,14 @@ export interface IRoleService {
 }
 
 export class RoleService implements IRoleService {
-  private roleRepository: RoleRepository;
+  private _roleRepository?: RoleRepository;
 
-  constructor () {
-    this.roleRepository = Container.get(RoleRepository);
+  private get roleRepository (): RoleRepository {
+    if (!this._roleRepository) {
+      this._roleRepository = Container.get(RoleRepository);
+    }
+
+    return this._roleRepository;
   }
 
   @RedisDecorator<RoleDto>(redisCacheConfig.ROLE_LIST)

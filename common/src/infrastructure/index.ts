@@ -1,4 +1,5 @@
 export * from './auth/auth-strategies.infrastructure';
+export * from './database/data-loader.infrastructure';
 export * from './database/db-connection.infrastructure';
 export * from './kafka/kafka.infrastructure';
 export * from './kafka/kafka-consumer.infrastructure';

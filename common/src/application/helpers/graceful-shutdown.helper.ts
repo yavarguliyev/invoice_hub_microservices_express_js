@@ -1,18 +1,17 @@
-import { config } from 'dotenv';
 import http from 'http';
 
 import { getErrorMessage } from './utility-functions.helper';
 import { appConfig } from '../../core/configs/app.config';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
 
-config();
-
 export abstract class BaseGracefulShutdownHelper {
-  protected static readonly shutdownTimeout = appConfig.SHUT_DOWN_TIMER;
-  protected static readonly maxRetries = appConfig.SHUTDOWN_RETRIES;
-  protected static readonly retryDelay = appConfig.SHUTDOWN_RETRY_DELAY;
+  protected readonly shutdownTimeout = appConfig.SHUT_DOWN_TIMER;
+  protected readonly maxRetries = appConfig.SHUTDOWN_RETRIES;
+  protected readonly retryDelay = appConfig.SHUTDOWN_RETRY_DELAY;
 
-  static async shutDown (httpServer: http.Server): Promise<void> {
+  protected abstract disconnectServices (): Promise<void>;
+
+  async shutDown (httpServer: http.Server): Promise<void> {
     let shutdownTimer;
 
     try {
@@ -34,9 +33,7 @@ export abstract class BaseGracefulShutdownHelper {
     }
   }
 
-  protected static async disconnectServices (): Promise<void> {}
-
-  static startShutdownTimer () {
+  startShutdownTimer () {
     return setTimeout(() => {
       LoggerTracerInfrastructure.log('Shutdown timeout reached, forcing process exit', 'error');
       process.exit(1);

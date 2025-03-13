@@ -1,5 +1,5 @@
 import { Container } from 'typedi';
-import { plainToInstance } from 'class-transformer';
+import DataLoader from 'dataloader';
 import {
   GetQueryResultsArgs,
   ResponseResults,
@@ -10,13 +10,16 @@ import {
   RedisDecorator,
   redisCacheConfig,
   KafkaInfrastructure,
+  ContainerKeys,
   Subjects,
   GroupIds,
   EventPublisherDecorator,
-  eventPublisherConfig
+  eventPublisherConfig,
+  DataLoaderInfrastructure
 } from '@invoice-hub/common';
 
 import { UserRepository } from 'domain/repositories/user.repository';
+import { User } from 'domain/entities/user.entity';
 
 export interface IUserService {
   initialize (): Promise<void>;
@@ -25,12 +28,33 @@ export interface IUserService {
 }
 
 export class UserService implements IUserService {
-  private userRepository: UserRepository;
-  private kafka: KafkaInfrastructure;
+  private _userRepository?: UserRepository;
+  private _kafka?: KafkaInfrastructure;
+  private _userDtoLoaderById?: DataLoader<string, UserDto>;
 
-  constructor () {
-    this.userRepository = Container.get(UserRepository);
-    this.kafka = Container.get(KafkaInfrastructure);
+  private get userRepository (): UserRepository {
+    if (!this._userRepository) {
+      this._userRepository = Container.get(UserRepository);
+    }
+
+    return this._userRepository;
+  }
+
+  private get kafka (): KafkaInfrastructure {
+    if (!this._kafka) {
+      this._kafka = Container.get(KafkaInfrastructure);
+    }
+
+    return this._kafka;
+  }
+
+  private get userDtoLoaderById (): DataLoader<string, UserDto> {
+    if (!this._userDtoLoaderById) {
+      this._userDtoLoaderById = Container.get<DataLoaderInfrastructure<User>>(ContainerKeys.USER_DATA_LOADER)
+        .getDataLoader({ entity: User, Dto: UserDto, fetchField: 'id', relations: [{ relation: 'role', relationDto: RoleDto }] });
+    }
+
+    return this._userDtoLoaderById;
   }
 
   async initialize () {
@@ -42,10 +66,7 @@ export class UserService implements IUserService {
   @RedisDecorator<UserDto>(redisCacheConfig.USER_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({
-      repository: this.userRepository,
-      query,
-      dtoClass: UserDto,
-      relatedEntity: { RelatedDtoClass: RoleDto, relationField: 'role' }
+      repository: this.userRepository, query, dtoClass: UserDto, relatedEntity: { RelatedDtoClass: RoleDto, relationField: 'role' }
     });
 
     return { payloads, total, result: ResultMessage.SUCCESS };
@@ -54,11 +75,10 @@ export class UserService implements IUserService {
   @EventPublisherDecorator(eventPublisherConfig.USER_GET_BY)
   async getBy (message: string) {
     const { message: request } = JSON.parse(message);
-    const { userId } = JSON.parse(request);
+    const { userId: id } = JSON.parse(request);
 
-    const user = await this.userRepository.findOneByOrFail({ id: userId });
-    const userDto = plainToInstance(UserDto, user, { excludeExtraneousValues: true });
-    userDto.role = plainToInstance(RoleDto, await user.role, { excludeExtraneousValues: true });
+    await this.userDtoLoaderById.clearAll();
+    const userDto = await this.userDtoLoaderById.load(id);
 
     return userDto;
   }

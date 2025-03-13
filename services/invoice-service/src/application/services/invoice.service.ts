@@ -1,5 +1,5 @@
 import { Container } from 'typedi';
-import { plainToInstance } from 'class-transformer';
+import DataLoader from 'dataloader';
 import {
   GetQueryResultsArgs,
   GroupIds,
@@ -15,11 +15,14 @@ import {
   RedisDecorator,
   redisCacheConfig,
   GetInvoiceArgs,
-  RedisCacheInvalidateDecorator
+  RedisCacheInvalidateDecorator,
+  DataLoaderInfrastructure,
+  ContainerKeys
 } from '@invoice-hub/common';
 
 import { buildKafkaRequestOptionsHelper } from 'application/helpers/kafka-request.helper';
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
+import { Invoice } from 'domain/entities/invoice.entity';
 
 export interface IInvoiceService {
   initialize (): Promise<void>;
@@ -29,12 +32,33 @@ export interface IInvoiceService {
 }
 
 export class InvoiceService implements IInvoiceService {
-  private invoiceRepository: InvoiceRepository;
-  private kafka: KafkaInfrastructure;
+  private _invoiceRepository?: InvoiceRepository;
+  private _kafka?: KafkaInfrastructure;
+  private _invoiceDtoLoaderById?: DataLoader<string, InvoiceDto>;
 
-  constructor () {
-    this.invoiceRepository = Container.get(InvoiceRepository);
-    this.kafka = Container.get(KafkaInfrastructure);
+  private get invoiceRepository (): InvoiceRepository {
+    if (!this._invoiceRepository) {
+      this._invoiceRepository = Container.get(InvoiceRepository);
+    }
+
+    return this._invoiceRepository;
+  }
+
+  private get kafka (): KafkaInfrastructure {
+    if (!this._kafka) {
+      this._kafka = Container.get(KafkaInfrastructure);
+    }
+
+    return this._kafka;
+  }
+
+  private get invoiceDtoLoaderById (): DataLoader<string, InvoiceDto> {
+    if (!this._invoiceDtoLoaderById) {
+      this._invoiceDtoLoaderById = Container.get<DataLoaderInfrastructure<Invoice>>(ContainerKeys.INVOICE_DATA_LOADER)
+        .getDataLoader({ entity: Invoice, Dto: InvoiceDto, fetchField: 'id' });
+    }
+
+    return this._invoiceDtoLoaderById;
   }
 
   async initialize () {
@@ -51,18 +75,18 @@ export class InvoiceService implements IInvoiceService {
   }
 
   async getById (args: GetInvoiceArgs) {
-    const invoice = await this.invoiceRepository.findOneByOrFail({ id: args.id });
-
-    const invoiceDto = plainToInstance(InvoiceDto, invoice, { excludeExtraneousValues: true });
-    const options = buildKafkaRequestOptionsHelper(invoice);
+    const invoiceDto = await this.ensureUserIdAndOrderInInvoice(args.id);
+    const options = buildKafkaRequestOptionsHelper(invoiceDto);
 
     const [orderResponse, userResponse] = await this.kafka.requestResponse(options);
 
     const order = JSON.parse(orderResponse);
     const user = JSON.parse(userResponse);
-    const payload = { ...invoiceDto, order, user };
 
-    return { payload, result: ResultMessage.SUCCESS };
+    delete invoiceDto.orderId;
+    delete invoiceDto.userId;
+
+    return { payload: { ...invoiceDto, order, user }, result: ResultMessage.SUCCESS };
   }
 
   @RedisCacheInvalidateDecorator(redisCacheConfig.INVOICE_LIST)
@@ -88,5 +112,16 @@ export class InvoiceService implements IInvoiceService {
       userId,
       pdfUrl: 'some pdf file could be generated for that in the future...'
     };
+  }
+
+  private async ensureUserIdAndOrderInInvoice (id: string): Promise<InvoiceDto> {
+    const invoiceDto = await this.invoiceDtoLoaderById.load(id);
+
+    if (!invoiceDto.userId || !invoiceDto.orderId) {
+      this.invoiceDtoLoaderById.clear(id);
+      return await this.ensureUserIdAndOrderInInvoice(id);
+    }
+
+    return invoiceDto;
   }
 }

@@ -7,4 +7,5 @@ export * from './helpers/retry.helper';
 export * from './helpers/utility-functions.helper';
 export * from './ioc/helpers/container.helper';
 export * from './ioc/static/container-items';
+export * from './ioc/static/container-keys';
 export * from './ioc/types/container-helper-dictionary-item';

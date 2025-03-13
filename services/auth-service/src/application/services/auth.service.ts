@@ -15,10 +15,14 @@ export interface IAuthService {
 }
 
 export class AuthService implements IAuthService {
-  private userRepository: UserRepository;
+  private _userRepository?: UserRepository;
 
-  constructor () {
-    this.userRepository = Container.get(UserRepository);
+  private get userRepository (): UserRepository {
+    if (!this._userRepository) {
+      this._userRepository = Container.get(UserRepository);
+    }
+
+    return this._userRepository;
   }
 
   async signin (args: SigninArgs) {

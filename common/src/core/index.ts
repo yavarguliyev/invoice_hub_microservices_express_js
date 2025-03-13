@@ -20,6 +20,7 @@ export * from './inputs/get-query-results.args';
 export * from './inputs/invoice.args';
 export * from './inputs/order.args';
 export * from './middlewares/error-handler.middleware';
+export * from './types/db-results.type';
 export * from './types/event-publisher-keys.type';
 export * from './types/logger-tracer.type';
 export * from './types/query-results.type';

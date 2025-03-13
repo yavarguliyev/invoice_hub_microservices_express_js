@@ -7,6 +7,12 @@ export class InvoiceDto {
   id: string;
 
   @Expose()
+  orderId?: string;
+
+  @Expose()
+  userId?: string;
+
+  @Expose()
   title: string;
 
   @Expose()

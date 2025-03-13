@@ -7,6 +7,9 @@ export class OrderDto {
   id: string;
 
   @Expose()
+  userId?: string;
+
+  @Expose()
   totalAmount: number;
 
   @Expose()

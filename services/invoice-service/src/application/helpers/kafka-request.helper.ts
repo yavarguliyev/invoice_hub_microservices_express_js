@@ -1,8 +1,6 @@
-import { GroupIds, KafkaRequestOptions, Subjects } from '@invoice-hub/common';
+import { GroupIds, InvoiceDto, KafkaRequestOptions, Subjects } from '@invoice-hub/common';
 
-import { Invoice } from 'domain/entities/invoice.entity';
-
-export const buildKafkaRequestOptionsHelper = ({ orderId, userId }: Invoice): KafkaRequestOptions[] => {
+export const buildKafkaRequestOptionsHelper = ({ orderId, userId }: InvoiceDto): KafkaRequestOptions[] => {
   return [
     {
       requestTopic: Subjects.FETCH_ORDER_REQUEST,

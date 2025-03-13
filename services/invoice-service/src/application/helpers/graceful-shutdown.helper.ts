@@ -1,3 +1,4 @@
+import { Container } from 'typedi';
 import {
   BaseGracefulShutdownHelper,
   KafkaInfrastructure,
@@ -6,18 +7,25 @@ import {
   DbConnectionInfrastructure,
   RedisInfrastructure,
   getErrorMessage,
-  ClientIds,
-  GroupIds
+  ClientIds
 } from '@invoice-hub/common';
 
 export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
-  protected static async disconnectServices (): Promise<void> {
-    const kafka = new KafkaInfrastructure({ clientId: ClientIds.INVOICE_SERVICE, groupId: GroupIds.INVOICE_SERVICE_GROUP });
-    const redis = new RedisInfrastructure();
-    const db = new DbConnectionInfrastructure();
+  private kafka: KafkaInfrastructure;
+  private redis: RedisInfrastructure;
+  private db: DbConnectionInfrastructure;
 
+  constructor () {
+    super();
+
+    this.kafka = Container.get(KafkaInfrastructure);
+    this.redis = Container.get(RedisInfrastructure);
+    this.db = Container.get(DbConnectionInfrastructure);
+  }
+
+  protected async disconnectServices (): Promise<void> {
     const disconnectPromises = [
-      RetryHelper.executeWithRetry(() => redis.disconnect({ clientId: ClientIds.INVOICE_SERVICE }), {
+      RetryHelper.executeWithRetry(() => this.redis.disconnect({ clientId: ClientIds.INVOICE_SERVICE }), {
         serviceName: 'Redis',
         maxRetries: this.maxRetries,
         retryDelay: this.retryDelay,
@@ -25,7 +33,7 @@ export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
           LoggerTracerInfrastructure.log(`Retrying Redis disconnect, attempt ${attempt}`);
         }
       }),
-      RetryHelper.executeWithRetry(() => kafka.disconnect(), {
+      RetryHelper.executeWithRetry(() => this.kafka.disconnect(), {
         serviceName: 'Kafka',
         maxRetries: this.maxRetries,
         retryDelay: this.retryDelay,
@@ -33,7 +41,7 @@ export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
           LoggerTracerInfrastructure.log(`Retrying Kafka disconnect, attempt ${attempt}`);
         }
       }),
-      RetryHelper.executeWithRetry(() => db.disconnect({ clientId: ClientIds.INVOICE_SERVICE }), {
+      RetryHelper.executeWithRetry(() => this.db.disconnect({ clientId: ClientIds.INVOICE_SERVICE }), {
         serviceName: 'Database',
         maxRetries: this.maxRetries,
         retryDelay: this.retryDelay,
@@ -47,7 +55,6 @@ export class GracefulShutdownHelper extends BaseGracefulShutdownHelper {
       await Promise.all(disconnectPromises);
     } catch (error) {
       LoggerTracerInfrastructure.log(`Service disconnection failed: ${getErrorMessage(error)}`, 'error');
-
       throw error;
     }
   }

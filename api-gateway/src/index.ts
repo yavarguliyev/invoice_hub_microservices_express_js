@@ -1,17 +1,19 @@
 import 'reflect-metadata';
+import { Container } from 'typedi';
 import { config } from 'dotenv';
 import http from 'http';
 import { LoggerTracerInfrastructure, handleProcessSignals, appConfig, ClientIds, ExpressServerInfrastructure, getErrorMessage } from '@invoice-hub/common';
 
 import { controllers, proxies } from 'api';
 import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
-import { configureContainers, configureControllersAndServices, configureMiddlewares } from 'application/ioc/bindings';
+import { configureContainers, configureControllersAndServices, configureMiddlewares, configureLifecycleServices } from 'application/ioc/bindings';
 
 config();
 
 const initializeDependencyInjections = async (): Promise<void> => {
   configureContainers();
   configureMiddlewares();
+  configureLifecycleServices();
   configureControllersAndServices();
 };
 
@@ -38,8 +40,10 @@ const main = async (): Promise<void> => {
     const appServer = await initializeServer();
     const port = appConfig.PORT;
 
+    const gracefulShutdownHelper = Container.get(GracefulShutdownHelper);
+
+    handleProcessSignals({ shutdownCallback: gracefulShutdownHelper.shutDown.bind(gracefulShutdownHelper), callbackArgs: [appServer] });
     startServer(appServer, port);
-    handleProcessSignals({ shutdownCallback: GracefulShutdownHelper.shutDown.bind(GracefulShutdownHelper), callbackArgs: [appServer] });
   } catch (error) {
     LoggerTracerInfrastructure.log(`Error during initialization: ${getErrorMessage(error)}`, 'error');
 

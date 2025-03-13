@@ -105,7 +105,7 @@ export const prepareMessage = (result: unknown, args: unknown[]) => {
     const parsedArg = JSON.parse(firstArg);
 
     if ('correlationId' in parsedArg) {
-      return parsedArg as KafkaResponse;
+      return { ...parsedArg, message: JSON.stringify(result) } as KafkaResponse;
     }
 
     return result;

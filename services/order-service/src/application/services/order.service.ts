@@ -1,4 +1,5 @@
 import { Container } from 'typedi';
+import DataLoader from 'dataloader';
 import { plainToInstance } from 'class-transformer';
 import {
   CreateOrderArgs,
@@ -19,7 +20,9 @@ import {
   UserDto,
   GetOrderArgs,
   EventPublisherDecorator,
-  eventPublisherConfig
+  eventPublisherConfig,
+  DataLoaderInfrastructure,
+  ContainerKeys
 } from '@invoice-hub/common';
 
 import { buildKafkaRequestOptionsHelper } from 'application/helpers/kafka-request.helper';
@@ -37,12 +40,33 @@ export interface IOrderService {
 }
 
 export class OrderService implements IOrderService {
-  private orderRepository: OrderRepository;
-  private kafka: KafkaInfrastructure;
+  private _orderRepository?: OrderRepository;
+  private _kafka?: KafkaInfrastructure;
+  private _orderDtoLoaderById?: DataLoader<string, OrderDto>;
 
-  constructor () {
-    this.orderRepository = Container.get(OrderRepository);
-    this.kafka = Container.get(KafkaInfrastructure);
+  private get orderRepository (): OrderRepository {
+    if (!this._orderRepository) {
+      this._orderRepository = Container.get(OrderRepository);
+    }
+
+    return this._orderRepository;
+  }
+
+  private get kafka (): KafkaInfrastructure {
+    if (!this._kafka) {
+      this._kafka = Container.get(KafkaInfrastructure);
+    }
+
+    return this._kafka;
+  }
+
+  private get orderDtoLoaderById (): DataLoader<string, OrderDto> {
+    if (!this._orderDtoLoaderById) {
+      this._orderDtoLoaderById = Container.get<DataLoaderInfrastructure<Order>>(ContainerKeys.ORDER_DATA_LOADER)
+        .getDataLoader({ entity: Order, Dto: OrderDto, fetchField: 'id' });
+    }
+
+    return this._orderDtoLoaderById;
   }
 
   async initialize () {
@@ -59,17 +83,14 @@ export class OrderService implements IOrderService {
   }
 
   async getById (args: GetOrderArgs) {
-    const order = await this.orderRepository.findOneByOrFail({ id: args.id });
+    const orderDto = await this.ensureUserIdInOrder(args.id);
 
-    const orderDto = plainToInstance(OrderDto, order, { excludeExtraneousValues: true });
-    const options = buildKafkaRequestOptionsHelper(order);
-
+    const options = buildKafkaRequestOptionsHelper(orderDto);
     const [userResponse] = await this.kafka.requestResponse(options);
-
     const user = JSON.parse(userResponse);
-    const payload = { ...orderDto, user };
+    delete orderDto.userId;
 
-    return { payload, result: ResultMessage.SUCCESS };
+    return { payload: { ...orderDto, user }, result: ResultMessage.SUCCESS };
   }
 
   @EventPublisherDecorator(eventPublisherConfig.ORDER_GET_BY)
@@ -77,10 +98,7 @@ export class OrderService implements IOrderService {
     const { message: request } = JSON.parse(message);
     const { orderId } = JSON.parse(request);
 
-    const order = await this.orderRepository.findOneByOrFail({ id: orderId });
-    const orderDto = plainToInstance(OrderDto, order, { excludeExtraneousValues: true });
-
-    return orderDto;
+    return await this.orderDtoLoaderById.load(orderId);
   }
 
   async createOrder ({ id }: UserDto, args: CreateOrderArgs) {
@@ -120,5 +138,16 @@ export class OrderService implements IOrderService {
   @EventPublisherDecorator(eventPublisherConfig.ORDER_INVOICE_GENERATE)
   private async handleInvoiceGeneration (args: OrderApproveOrCancelArgs, order: Order) {
     return { ...args, totalAmount: order.totalAmount, userId: order.userId } as GenerateInvoiceArgs;
+  }
+
+  private async ensureUserIdInOrder (id: string): Promise<OrderDto> {
+    const orderDto = await this.orderDtoLoaderById.load(id);
+
+    if (!orderDto.userId) {
+      this.orderDtoLoaderById.clear(id);
+      return await this.ensureUserIdInOrder(id);
+    }
+
+    return orderDto;
   }
 }

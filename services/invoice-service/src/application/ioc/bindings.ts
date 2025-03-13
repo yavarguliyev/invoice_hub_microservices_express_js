@@ -11,11 +11,14 @@ import {
   KafkaInfrastructure,
   ClientIds,
   RedisInfrastructure,
-  GroupIds
+  GroupIds,
+  DataLoaderInfrastructure,
+  ContainerKeys
 } from '@invoice-hub/common';
 
 import { InvoicesController } from 'api/v1/invoices.controller';
 import { IInvoiceService, InvoiceService } from 'application/services/invoice.service';
+import { GracefulShutdownHelper } from 'application/helpers/graceful-shutdown.helper';
 import { Invoice } from 'domain/entities/invoice.entity';
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 
@@ -31,27 +34,46 @@ export async function configureInfrastructures () {
   const redis = new RedisInfrastructure();
   await redis.initialize({ clientId: ClientIds.INVOICE_SERVICE });
 
-  const db = new DbConnectionInfrastructure();
-  const dataSource = await db.create({ clientId: ClientIds.INVOICE_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Invoice]) });
+  const dbConnection = new DbConnectionInfrastructure();
+  const dataSource = await dbConnection.create({ clientId: ClientIds.INVOICE_SERVICE, dataSourceOptions: getDataSourceConfig(false, [Invoice]) });
   await dataSource.initialize();
+
+  const invoiceDataLoader = new DataLoaderInfrastructure<Invoice>(dataSource.getRepository(Invoice));
 
   Container.set(KafkaInfrastructure, kafka);
   Container.set(RedisInfrastructure, redis);
-  Container.set(DbConnectionInfrastructure, dataSource);
-  Container.set(InvoiceRepository, dataSource.getRepository(Invoice));
+  Container.set(DbConnectionInfrastructure, dbConnection);
+  Container.set(ContainerKeys.INVOICE_DATA_LOADER, invoiceDataLoader);
 };
 
 export function configureMiddlewares () {
   Container.set(GlobalErrorHandlerMiddleware, new GlobalErrorHandlerMiddleware());
 };
 
+export function configureLifecycleServices () {
+  Container.set(GracefulShutdownHelper, new GracefulShutdownHelper());
+}
+
 export function configureControllersAndServices () {
   registerService({ id: ContainerItems.IInvoiceService, service: InvoiceService });
 
-  ContainerHelper.registerController(InvoicesController);
+  const dbConnection = Container.get<DbConnectionInfrastructure>(DbConnectionInfrastructure);
+  const dataSource = dbConnection.getDataSource({ clientId: ClientIds.INVOICE_SERVICE });
+
+  if (!dataSource) {
+    throw new Error('Database connection is not initialized.');
+  }
+
+  Container.set(InvoiceRepository, dataSource.getRepository(Invoice));
+
+  ContainerHelper
+    .registerController(InvoicesController);
 };
 
 export async function configureKafkaServices () {
   const invoiceService = ContainerHelper.get<IInvoiceService>(ContainerItems.IInvoiceService);
-  await invoiceService.initialize();
+
+  if (typeof invoiceService.initialize === 'function') {
+    await invoiceService.initialize();
+  }
 };
