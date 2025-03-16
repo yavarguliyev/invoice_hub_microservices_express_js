@@ -1,17 +1,22 @@
 import http from 'http';
 
+import { RetryHelper } from './retry.helper';
 import { getErrorMessage } from './utility-functions.helper';
 import { appConfig } from '../../core/configs/app.config';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
+import { GracefulShutDownServiceConfig } from '../../domain/interfaces/dependency-config.interface';
 
-export abstract class BaseGracefulShutdownHelper {
-  protected readonly shutdownTimeout = appConfig.SHUT_DOWN_TIMER;
-  protected readonly maxRetries = appConfig.SHUTDOWN_RETRIES;
-  protected readonly retryDelay = appConfig.SHUTDOWN_RETRY_DELAY;
+export class GracefulShutdownHelper {
+  private readonly shutdownTimeout = appConfig.SHUT_DOWN_TIMER;
+  private readonly maxRetries = appConfig.SHUTDOWN_RETRIES;
+  private readonly retryDelay = appConfig.SHUTDOWN_RETRY_DELAY;
+  private readonly services: GracefulShutDownServiceConfig[];
 
-  protected abstract disconnectServices (): Promise<void>;
+  constructor (services: GracefulShutDownServiceConfig[]) {
+    this.services = services;
+  }
 
-  async shutDown (httpServer: http.Server): Promise<void> {
+  public async shutDown (httpServer: http.Server): Promise<void> {
     let shutdownTimer;
 
     try {
@@ -33,7 +38,37 @@ export abstract class BaseGracefulShutdownHelper {
     }
   }
 
-  startShutdownTimer () {
+  private async disconnectServices (): Promise<void> {
+    const disconnectPromises = this.services.map((service) =>
+      this.retryDisconnect(service).catch((error) => {
+        LoggerTracerInfrastructure.log(`${service.name} disconnection failed: ${getErrorMessage(error)}`, 'error');
+        throw error;
+      })
+    );
+
+    try {
+      await Promise.all(disconnectPromises);
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Service disconnection failed: ${getErrorMessage(error)}`, 'error');
+      throw error;
+    }
+  }
+
+  private async retryDisconnect (service: GracefulShutDownServiceConfig): Promise<void> {
+    await RetryHelper.executeWithRetry(
+      service.disconnect,
+      {
+        serviceName: service.name,
+        maxRetries: this.maxRetries,
+        retryDelay: this.retryDelay,
+        onRetry: (attempt) => {
+          LoggerTracerInfrastructure.log(`Retrying ${service.name} disconnect, attempt ${attempt}`);
+        }
+      }
+    );
+  }
+
+  private startShutdownTimer() {
     return setTimeout(() => {
       LoggerTracerInfrastructure.log('Shutdown timeout reached, forcing process exit', 'error');
       process.exit(1);

@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 import { DataSourceOptions, EntitySchema, EntityTarget } from 'typeorm';
 
-dotenv.config();
+config();
 
 export const baseConfig: DataSourceOptions = {
   type: 'postgres',
@@ -13,10 +13,10 @@ export const baseConfig: DataSourceOptions = {
   synchronize: false,
   logging: false,
   subscribers: []
-};
+} as const;
 
 export const getDataSourceConfig = <T>(includeMigrations = false, entities: EntityTarget<T>[] = []): DataSourceOptions => {
   return includeMigrations
     ? { ...baseConfig, entities: entities as (string | Function | EntitySchema<T>)[], migrations: ['migrations/*.ts'] }
     : { ...baseConfig, entities: entities as (string | Function | EntitySchema<T>)[] };
-}
+};

@@ -3,4 +3,4 @@ export const ContainerKeys = {
   ROLE_DATA_LOADER: 'RoleDataLoader',
   INVOICE_DATA_LOADER: 'InvoiceDataLoader',
   ORDER_DATA_LOADER: 'OrderDataLoader'
-};
+} as const;

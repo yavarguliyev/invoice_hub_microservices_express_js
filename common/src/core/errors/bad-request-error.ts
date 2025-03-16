@@ -1,7 +1,7 @@
 import { CustomError } from './custom-error';
 import { BadRequestDetails } from '../../domain/interfaces/error-request-details.interface';
 
-class BadRequestError extends CustomError<BadRequestDetails> {
+export class BadRequestError extends CustomError<BadRequestDetails> {
   statusCode = 400;
   reason = 'Bad request';
 
@@ -14,5 +14,3 @@ class BadRequestError extends CustomError<BadRequestDetails> {
     return [{ message: this.message, reason: this.reason, details: this.details }];
   }
 }
-
-export { BadRequestError };

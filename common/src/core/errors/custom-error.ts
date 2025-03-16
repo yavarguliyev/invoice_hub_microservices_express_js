@@ -1,4 +1,4 @@
-abstract class CustomError<TDetails = Record<string, unknown>> extends Error {
+export abstract class CustomError<TDetails = Record<string, unknown>> extends Error {
   abstract statusCode: number;
   abstract reason: string;
 
@@ -9,5 +9,3 @@ abstract class CustomError<TDetails = Record<string, unknown>> extends Error {
 
   abstract serializeErrors(): { message: string; field?: string; reason: string; details?: TDetails }[];
 }
-
-export { CustomError };

@@ -1,15 +1,15 @@
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 
-dotenv.config();
+config();
 
 export const counter = {
   name: process.env.METRICS_REQUEST_COUNT_NAME!,
   help: process.env.METRICS_REQUEST_COUNT_HELP!,
   labelNames: ['method', 'route', 'status']
-};
+} as const;
 
 export const histogram = {
   name: process.env.METRICS_DURATION_NAME!,
   help: process.env.METRICS_DURATION_HELP!,
   buckets: process.env.METRICS_DURATION_BUCKETS!.split(',').map(Number)
-};
+} as const;

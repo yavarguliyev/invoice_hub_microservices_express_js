@@ -1,8 +1,7 @@
 import { Body, HeaderParam, JsonController, Post } from 'routing-controllers';
-import { createVersionedRoute, ContainerHelper, ContainerItems } from '@invoice-hub/common';
+import { createVersionedRoute, ContainerHelper, ContainerItems, SigninArgs } from '@invoice-hub/common';
 
 import { IAuthService } from 'application/services/auth.service';
-import { SigninArgs } from 'core/inputs/signin.args';
 
 @JsonController(createVersionedRoute({ controllerPath: '/auth', version: 'v1' }))
 export class AuthController {

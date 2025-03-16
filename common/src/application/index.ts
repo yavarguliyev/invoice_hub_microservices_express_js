@@ -1,3 +1,4 @@
+export * from './bootstrap/server-bootstrapper';
 export * from './helpers/auth-strategies.helper/base-auth-strategy';
 export * from './helpers/auth-strategies.helper/jwt-auth-strategy';
 export * from './helpers/authorization-checker.helper';

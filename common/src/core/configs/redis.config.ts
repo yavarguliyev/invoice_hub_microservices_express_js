@@ -1,10 +1,9 @@
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 
 import { REDIS_CACHE_KEYS, RedisCacheConfig } from '../types/redis-cache-keys.type';
 import { ClientIds } from '../../domain/enums/events.enum';
 
-
-dotenv.config();
+config();
 
 export const redisConfig = {
   REDIS_PORT: Number(process.env.REDIS_PORT!),
@@ -18,4 +17,4 @@ export const redisCacheConfig: RedisCacheConfig = {
   USER_LIST: { clientId: ClientIds.AUTH_SERVICE, keyTemplate: REDIS_CACHE_KEYS.USER_GET_LIST },
   INVOICE_LIST: { clientId: ClientIds.INVOICE_SERVICE, keyTemplate: REDIS_CACHE_KEYS.INVOICE_GET_LIST },
   ORDER_LIST: { clientId: ClientIds.ORDER_SERVICE, keyTemplate: REDIS_CACHE_KEYS.ORDER_GET_LIST }
-};
+} as const;

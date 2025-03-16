@@ -1,7 +1,7 @@
 import { CustomError } from './custom-error';
 import { NotFoundDetails } from '../../domain/interfaces/error-request-details.interface';
 
-class NotFoundError extends CustomError<NotFoundDetails> {
+export class NotFoundError extends CustomError<NotFoundDetails> {
   statusCode = 404;
   reason = 'Resource not found';
 
@@ -14,5 +14,3 @@ class NotFoundError extends CustomError<NotFoundDetails> {
     return [{ message: this.message, reason: this.reason, details: this.details }];
   }
 }
-
-export { NotFoundError };

@@ -12,4 +12,4 @@ export const eventPublisherConfig: Record<string, EventDecoratorOptions> = {
       { clientId: ClientIds.ORDER_SERVICE, keyTemplate: REDIS_CACHE_KEYS.ORDER_GET_LIST }
     ]
   }
-};
+} as const;

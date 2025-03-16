@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 
-dotenv.config();
+config();
 
 export const appConfig = {
   NODE_ENV: process.env.NODE_ENV,
@@ -12,7 +12,10 @@ export const appConfig = {
   SHUT_DOWN_TIMER: Number(process.env.SHUT_DOWN_TIMER),
   SHUTDOWN_RETRIES: Number(process.env.SHUTDOWN_RETRIES),
   SHUTDOWN_RETRY_DELAY: Number(process.env.SHUTDOWN_RETRY_DELAY),
+  AUTH_PATH: process.env.AUTH_PATH,
   AUTH_ORIGIN_ROUTE: process.env.AUTH_ORIGIN_ROUTE,
+  INVOICE_PATH: process.env.INVOICE_PATH,
   INVOICE_ORIGIN_ROUTE: process.env.INVOICE_ORIGIN_ROUTE,
+  ORDER_PATH: process.env.ORDER_PATH,
   ORDER_ORIGIN_ROUTE: process.env.ORDER_ORIGIN_ROUTE
-};
+} as const;

@@ -1,7 +1,7 @@
 import { CustomError } from './custom-error';
 import { DatabaseConnectionDetails } from '../../domain/interfaces/error-request-details.interface';
 
-class DatabaseConnectionError extends CustomError<DatabaseConnectionDetails> {
+export class DatabaseConnectionError extends CustomError<DatabaseConnectionDetails> {
   statusCode = 500;
   reason = 'Error connecting to the database';
 
@@ -14,5 +14,3 @@ class DatabaseConnectionError extends CustomError<DatabaseConnectionDetails> {
     return [{ message: this.message, reason: this.reason, details: this.details }];
   }
 }
-
-export { DatabaseConnectionError };

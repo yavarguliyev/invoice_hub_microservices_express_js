@@ -1,7 +1,7 @@
 import { CustomError } from './custom-error';
 import { NotAuthorizedDetails } from '../../domain/interfaces/error-request-details.interface';
 
-class NotAuthorizedError extends CustomError<NotAuthorizedDetails> {
+export class NotAuthorizedError extends CustomError<NotAuthorizedDetails> {
   statusCode = 401;
   reason = 'User not authorized';
 
@@ -14,5 +14,3 @@ class NotAuthorizedError extends CustomError<NotAuthorizedDetails> {
     return [{ message: this.message, reason: this.reason, details: this.details }];
   }
 }
-
-export { NotAuthorizedError };

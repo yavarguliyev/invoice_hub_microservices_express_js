@@ -1,6 +1,6 @@
 import { Expose } from 'class-transformer';
 
-import { OrderStatus } from '../enums/order-status.enum';
+import { OrderStatus } from '../../domain/enums/status.enum';
 
 export class OrderDto {
   @Expose()

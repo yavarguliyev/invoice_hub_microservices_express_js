@@ -3,7 +3,7 @@ import { ValidationError } from 'express-validator';
 import { CustomError } from './custom-error';
 import { isValidationErrorWithParam, ValidationErrorDetails } from '../../domain/interfaces/error-request-details.interface';
 
-class RequestValidationError extends CustomError<ValidationErrorDetails[]> {
+export class RequestValidationError extends CustomError<ValidationErrorDetails[]> {
   statusCode = 400;
   reason = 'Validation failed';
 
@@ -23,5 +23,3 @@ class RequestValidationError extends CustomError<ValidationErrorDetails[]> {
     });
   }
 }
-
-export { RequestValidationError };

@@ -1,8 +1,7 @@
 import { IsEnum, IsNumber, IsString } from 'class-validator';
 import { Expose } from 'class-transformer';
 
-import { OrderStatus } from '../../domain/enums/order-status.enum';
-import { InvoiceStatus } from '../../domain/enums/invoice-status.enum';
+import { InvoiceStatus, OrderStatus } from '../../domain/enums/status.enum';
 
 export class GetInvoiceArgs {
   @Expose()

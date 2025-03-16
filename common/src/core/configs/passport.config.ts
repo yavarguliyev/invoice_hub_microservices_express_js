@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 
-dotenv.config();
+config();
 
 export const passportConfig = {
   JWT_PRIVATE_KEY: Buffer.from(process.env.JWT_PRIVATE_KEY!, 'base64').toString('utf8'),

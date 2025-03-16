@@ -46,4 +46,3 @@ export interface ValidationError {
 export interface ErrorWithValidation extends Error {
   errors?: ValidationError[];
 };
-
