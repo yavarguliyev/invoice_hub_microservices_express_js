@@ -18,42 +18,56 @@ import { OrderService } from 'application/services/order.service';
 import { Order } from 'domain/entities/order.entity';
 import { OrderRepository } from 'domain/repositories/order.repository';
 
-export const entities = [Order];
+class OrderAppConfig {
+  static entities = [Order];
 
-export const repositories: { repository: Constructable<Repository<Order>>; entity: EntityTarget<IEntityWithId> }[] = [
-  { repository: OrderRepository, entity: Order }
-];
+  private static repositories: { repository: Constructable<Repository<Order>>; entity: EntityTarget<IEntityWithId> }[] = [
+    { repository: OrderRepository, entity: Order }
+  ];
 
-export const dataLoaders: { containerKey: string, entity: EntityTarget<IEntityWithId> }[] = [
-  { containerKey: ContainerKeys.ORDER_DATA_LOADER, entity: Order }
-];
+  private static dataLoaders: { containerKey: string; entity: EntityTarget<IEntityWithId> }[] = [
+    { containerKey: ContainerKeys.ORDER_DATA_LOADER, entity: Order }
+  ];
 
-export const services: RegisterServiceOptions<OrderService>[] = [
-  { id: ContainerItems.IOrderService, service: OrderService } as RegisterServiceOptions<OrderService>
-];
+  private static services: RegisterServiceOptions<OrderService>[] = [
+    { id: ContainerItems.IOrderService, service: OrderService } as RegisterServiceOptions<OrderService>
+  ];
 
-export const controllers: Constructable<OrdersController>[] = [
-  OrdersController as Constructable<OrdersController>
-];
+  private static controllers: Constructable<OrdersController>[] = [
+    OrdersController as Constructable<OrdersController>
+  ];
 
-export const dependencyInjectionsConfig = {
-  useTypeOrm: true,
-  clientId: ClientIds.ORDER_SERVICE,
-  groupId: GroupIds.ORDER_SERVICE_GROUP,
-  entities,
-  controllers,
-  dataLoaders,
-  repositories,
-  services,
-  serviceKeys: [ContainerItems.IOrderService]
-};
+  private static dependencyInjectionsConfig = {
+    useTypeOrm: true,
+    clientId: ClientIds.ORDER_SERVICE,
+    groupId: GroupIds.ORDER_SERVICE_GROUP,
+    entities: OrderAppConfig.entities,
+    controllers: OrderAppConfig.controllers,
+    dataLoaders: OrderAppConfig.dataLoaders,
+    repositories: OrderAppConfig.repositories,
+    services: OrderAppConfig.services,
+    serviceKeys: [ContainerItems.IOrderService]
+  };
 
-export const serverConfig = { clientId: ClientIds.ORDER_SERVICE, controllers };
+  private static serverConfig = { clientId: ClientIds.ORDER_SERVICE, controllers: OrderAppConfig.controllers };
 
-export const gracefulShutDownService: GracefulShutDownServiceConfig[] = [
-  { name: 'Redis', disconnect: () => Container.get(RedisInfrastructure).disconnect({ clientId: ClientIds.ORDER_SERVICE }) },
-  { name: 'Kafka', disconnect: () => Container.get(KafkaInfrastructure).disconnect() },
-  { name: 'Database', disconnect: () => Container.get(DbConnectionInfrastructure).disconnect({ clientId: ClientIds.ORDER_SERVICE }) }
-];
+  private static gracefulShutDownService: GracefulShutDownServiceConfig[] = [
+    { name: 'Redis', disconnect: () => Container.get(RedisInfrastructure).disconnect({ clientId: ClientIds.ORDER_SERVICE }) },
+    { name: 'Kafka', disconnect: () => Container.get(KafkaInfrastructure).disconnect() },
+    { name: 'Database', disconnect: () => Container.get(DbConnectionInfrastructure).disconnect({ clientId: ClientIds.ORDER_SERVICE }) }
+  ];
 
-export const appConfig = { dependencyInjectionsConfig, serverConfig, gracefulShutDownService, appName: ClientIds.ORDER_SERVICE };
+  static get config () {
+    return {
+      dependencyInjectionsConfig: OrderAppConfig.dependencyInjectionsConfig,
+      serverConfig: OrderAppConfig.serverConfig,
+      gracefulShutDownService: OrderAppConfig.gracefulShutDownService,
+      appName: ClientIds.ORDER_SERVICE
+    };
+  }
+}
+
+const entities = OrderAppConfig.entities;
+const appConfig = OrderAppConfig.config;
+
+export { entities, appConfig };

@@ -4,36 +4,53 @@ import { appConfig as config, ClientIds, ContainerItems, GracefulShutDownService
 import { ApiGatewayController } from 'api/v1/api-gateway.controller';
 import { ApiService, IApiService } from 'application/services/api.service';
 
-export const services = [
-  { id: ContainerItems.IApiService, service: ApiService } as RegisterServiceOptions<IApiService>
-];
+class ApiGatewayAppConfig {
+  private static services: RegisterServiceOptions<IApiService>[] = [
+    { id: ContainerItems.IApiService, service: ApiService } as RegisterServiceOptions<IApiService>
+  ];
 
-export const controllers: Constructable<ApiGatewayController>[] = [
-  ApiGatewayController as Constructable<ApiGatewayController>
-];
+  private static controllers: Constructable<ApiGatewayController>[] = [
+    ApiGatewayController as Constructable<ApiGatewayController>
+  ];
 
-export const proxies = [
-  { path: config.AUTH_PATH, target: config.AUTH_ORIGIN_ROUTE },
-  { path: config.INVOICE_PATH, target: config.INVOICE_ORIGIN_ROUTE },
-  { path: config.ORDER_PATH, target: config.ORDER_ORIGIN_ROUTE }
-] as { path: string; target: string }[];
+  private static proxies = [
+    { path: config.AUTH_PATH, target: config.AUTH_ORIGIN_ROUTE },
+    { path: config.INVOICE_PATH, target: config.INVOICE_ORIGIN_ROUTE },
+    { path: config.ORDER_PATH, target: config.ORDER_ORIGIN_ROUTE }
+  ] as { path: string; target: string }[];
 
-export const dependencyInjectionsConfig = {
-  useTypeOrm: false,
-  clientId: ClientIds.API_GATEWAY,
-  groupId: GroupIds.BASE_GROUP,
-  entities: [],
-  controllers,
-  dataLoaders: [],
-  repositories: [],
-  services,
-  serviceKeys: []
-};
+  private static dependencyInjectionsConfig = {
+    useTypeOrm: false,
+    clientId: ClientIds.API_GATEWAY,
+    groupId: GroupIds.BASE_GROUP,
+    entities: [],
+    controllers: ApiGatewayAppConfig.controllers,
+    dataLoaders: [],
+    repositories: [],
+    services: ApiGatewayAppConfig.services,
+    serviceKeys: []
+  };
 
-export const serverConfig = { clientId: ClientIds.API_GATEWAY, controllers, proxies };
+  private static serverConfig = {
+    clientId: ClientIds.API_GATEWAY,
+    controllers: ApiGatewayAppConfig.controllers,
+    proxies: ApiGatewayAppConfig.proxies
+  };
 
-export const gracefulShutDownService: GracefulShutDownServiceConfig[] = [
-  { name: ClientIds.API_GATEWAY, disconnect: () => Promise.resolve() }
-];
+  private static gracefulShutDownService: GracefulShutDownServiceConfig[] = [
+    { name: ClientIds.API_GATEWAY, disconnect: () => Promise.resolve() }
+  ];
 
-export const appConfig = { dependencyInjectionsConfig, serverConfig, gracefulShutDownService, appName: ClientIds.API_GATEWAY };
+  static get config () {
+    return {
+      dependencyInjectionsConfig: ApiGatewayAppConfig.dependencyInjectionsConfig,
+      serverConfig: ApiGatewayAppConfig.serverConfig,
+      gracefulShutDownService: ApiGatewayAppConfig.gracefulShutDownService,
+      appName: ClientIds.API_GATEWAY
+    };
+  }
+}
+
+const appConfig = ApiGatewayAppConfig.config;
+
+export { appConfig };

@@ -21,11 +21,18 @@
 		"build:prod": "yarn clean:dist && tsc",
 		"start:tsclint": "yarn clean:dist && concurrently --kill-others --names lint,tsc,nodemon --prefix-colors green,blue,yellow \"yarn lint\" \"tsc --preserveWatchOutput --watch\" \"sleep 8 && nodemon -r tsconfig-paths/register dist/index.js\"",
 		"start": "yarn start:tsclint",
-		"start:prod": "yarn build:prod && NODE_PATH=dist node -r tsconfig-paths/register dist/index.js"
+		"start:prod": "yarn build:prod && NODE_PATH=dist node -r tsconfig-paths/register dist/index.js",
+		"test": "jest --config jest.config.js"
 	},
 	"keywords": [],
 	"dependencies": {
 		"@invoice-hub/common": "*",
-		"typeorm": "^0.3.20"
+		"typeorm": "^0.3.21"
+	},
+	"devDependencies": {
+		"@types/supertest": "^6.0.3",
+		"jest": "^29.7.0",
+		"supertest": "^7.1.0",
+		"ts-jest": "^29.3.0"
 	}
 }
