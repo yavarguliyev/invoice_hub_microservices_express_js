@@ -42,7 +42,7 @@ COPY --from=builder /app/yarn.lock /app/yarn.lock
 
 RUN apk add --no-cache python3 make g++
 RUN yarn install --frozen-lockfile
-RUN yarn build
+RUN yarn build:prod
 
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}

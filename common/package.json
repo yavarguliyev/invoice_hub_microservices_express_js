@@ -12,7 +12,7 @@
   "scripts": {
     "clean:dist": "rimraf dist/*",
     "lint": "esw --watch --ext .ts src",
-    "build": "yarn clean:dist && tsc"
+    "build:prod": "yarn clean:dist && tsc"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

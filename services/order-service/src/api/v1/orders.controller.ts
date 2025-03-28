@@ -1,47 +1,35 @@
 import { JsonController, Get, QueryParams, Authorized, Post, CurrentUser, Body, HttpCode, Patch, Param, Params } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, ContainerItems, Roles, UserDto, CreateOrderArgs, GetOrderArgs } from '@invoice-hub/common';
+import { createVersionedRoute, GetQueryResultsArgs, Roles, UserDto, CreateOrderArgs, GetOrderArgs } from '@invoice-hub/common';
 
-import { IOrderService } from 'application/services/order.service';
+import { BaseController } from 'api/base.controller';
 
+@Authorized([Roles.GlobalAdmin, Roles.Admin])
 @JsonController(createVersionedRoute({ controllerPath: '/orders', version: 'v1' }))
-export class OrdersController {
-  private _orderService: IOrderService;
-
-  private get orderService (): IOrderService {
-    if (!this._orderService) {
-      this._orderService = ContainerHelper.get<IOrderService>(ContainerItems.IOrderService);
-    }
-
-    return this._orderService;
-  }
-
-  @Authorized([Roles.GlobalAdmin, Roles.Admin])
+export class OrdersController extends BaseController {
   @Get('/')
   async get (@QueryParams() query: GetQueryResultsArgs) {
-    return await this.orderService.get(query);
+    return this.orderService.get(query);
   }
 
   @Get('/:id')
   async getById (@Params() args: GetOrderArgs) {
-    return await this.orderService.getById(args);
+    return this.orderService.getById(args);
   }
 
   @Authorized([Roles.Standard])
   @HttpCode(201)
   @Post('/')
   async createOrder (@CurrentUser() currentUser: UserDto, @Body() args: CreateOrderArgs) {
-    return await this.orderService.createOrder(currentUser, args);
+    return this.orderService.createOrder(currentUser, args);
   }
 
-  @Authorized([Roles.GlobalAdmin, Roles.Admin])
   @Patch('/:id/approve')
   async approveOrder (@Param('id') orderId: string) {
-    return await this.orderService.approveOrder(orderId);
+    return this.orderService.approveOrder(orderId);
   }
 
-  @Authorized([Roles.GlobalAdmin, Roles.Admin])
   @Patch('/:id/cancel')
   async cancelOrder (@Param('id') orderId: string) {
-    return await this.orderService.cancelOrder(orderId);
+    return this.orderService.cancelOrder(orderId);
   }
 }

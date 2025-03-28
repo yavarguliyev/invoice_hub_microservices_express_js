@@ -1,23 +1,13 @@
 import { JsonController, Get, QueryParams, Authorized } from 'routing-controllers';
-import { ContainerHelper, createVersionedRoute, GetQueryResultsArgs, Roles, ContainerItems } from '@invoice-hub/common';
+import { createVersionedRoute, GetQueryResultsArgs, Roles } from '@invoice-hub/common';
 
-import { IRoleService } from 'application/services/role.service';
+import { BaseController } from 'api/base.controller';
 
 @Authorized([Roles.GlobalAdmin])
 @JsonController(createVersionedRoute({ controllerPath: '/roles', version: 'v1' }))
-export class RolesController {
-  private _roleService: IRoleService;
-
-  private get roleService (): IRoleService {
-    if (!this._roleService) {
-      this._roleService = ContainerHelper.get<IRoleService>(ContainerItems.IRoleService);
-    }
-
-    return this._roleService;
-  }
-
+export class RolesController extends BaseController {
   @Get('/')
   async get (@QueryParams() query: GetQueryResultsArgs) {
-    return await this.roleService.get(query);
+    return this.roleService.get(query);
   }
 }
