@@ -18,4 +18,4 @@ export const appConfig = {
   INVOICE_ORIGIN_ROUTE: process.env.INVOICE_ORIGIN_ROUTE,
   ORDER_PATH: process.env.ORDER_PATH,
   ORDER_ORIGIN_ROUTE: process.env.ORDER_ORIGIN_ROUTE
-} as const;
+};

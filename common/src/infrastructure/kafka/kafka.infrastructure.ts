@@ -53,6 +53,7 @@ export class KafkaInfrastructure {
     const groupId = args.options?.groupId ?? GroupIds.BASE_GROUP;
     if (!this.consumerInstances.has(groupId)) {
       this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
+      await this.consumerInstances.get(groupId)!.connect();
     }
 
     const consumerInstance = this.consumerInstances.get(groupId)!;
@@ -99,7 +100,7 @@ export class KafkaInfrastructure {
     });
   }
 
-  private handleResponse ({ responseMessage }: KafkaHandleResponsedOptions) {
+  private async handleResponse ({ responseMessage }: KafkaHandleResponsedOptions) {
     const { correlationId, message: response } = JSON.parse(responseMessage) as KafkaResponse;
     const handler = this.responseHandlers.get(correlationId);
 

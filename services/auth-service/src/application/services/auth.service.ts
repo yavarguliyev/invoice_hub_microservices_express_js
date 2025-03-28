@@ -9,8 +9,8 @@ import {
 import { UserRepository } from 'domain/repositories/user.repository';
 
 export interface IAuthService {
-  signin (args: SigninArgs): Promise<LoginResponse>;
-  signout (accesToken: string): Promise<boolean>;
+  signin(args: SigninArgs): Promise<LoginResponse>;
+  signout(accesToken: string): Promise<boolean>;
 }
 
 export class AuthService implements IAuthService {

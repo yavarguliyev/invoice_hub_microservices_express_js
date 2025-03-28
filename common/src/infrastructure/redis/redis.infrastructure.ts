@@ -81,4 +81,9 @@ export class RedisInfrastructure {
   private getClient ({ clientId }: RedisBaseOptions) {
     return this.clientMap.get(clientId);
   }
+
+  async getKeysByPattern ({ clientId, pattern }: { clientId: ClientIds; pattern: string }): Promise<string[]> {
+    const client = ensureInitialized({ connection: this.getClient({ clientId }), clientId });
+    return client?.keys(pattern) || [];
+  }
 }

@@ -18,6 +18,7 @@ import { KafkaInfrastructure } from '../../infrastructure/kafka/kafka.infrastruc
 import { RedisInfrastructure } from '../../infrastructure/redis/redis.infrastructure';
 import { ExpressServerInfrastructure } from '../../infrastructure/server/express-server.infrastructure';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
+import { TransactionCoordinatorInfrastructure } from '../../infrastructure/transaction/transaction-coordinator.infrastructure';
 
 export class ServerBootstrapper {
   private static configureContainers (useTypeOrm: boolean) {
@@ -51,6 +52,8 @@ export class ServerBootstrapper {
     dataLoaders.forEach(({ containerKey, entity }) => {
       Container.set(containerKey, new DataLoaderInfrastructure(dataSource.getRepository(entity)));
     });
+
+    Container.set(TransactionCoordinatorInfrastructure, new TransactionCoordinatorInfrastructure({ clientId }));
   }
 
   private static configureLifecycleServices (config: GracefulShutDownServiceConfig[]) {

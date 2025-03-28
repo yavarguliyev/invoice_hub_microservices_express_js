@@ -22,9 +22,9 @@ import { UserRepository } from 'domain/repositories/user.repository';
 import { User } from 'domain/entities/user.entity';
 
 export interface IUserService {
-  initialize (): Promise<void>;
-  get (query: GetQueryResultsArgs): Promise<ResponseResults<UserDto>>;
-  getBy (message: string): Promise<UserDto>;
+  initialize(): Promise<void>;
+  get(query: GetQueryResultsArgs): Promise<ResponseResults<UserDto>>;
+  getBy(message: string): Promise<void>;
 }
 
 export class UserService implements IUserService {
@@ -78,8 +78,6 @@ export class UserService implements IUserService {
     const { userId: id } = JSON.parse(request);
 
     await this.userDtoLoaderById.clearAll();
-    const userDto = await this.userDtoLoaderById.load(id);
-
-    return userDto;
+    await this.userDtoLoaderById.load(id);
   }
 }

@@ -29,7 +29,7 @@ export interface KafkaTopicCreationOptions {
 
 export interface KafkaSubscriberOptions {
   topicName: string;
-  handler: (message: string) => void;
+  handler: (message: string) => Promise<void>;
   options?: KafkaGroupIdOptions
 }
 

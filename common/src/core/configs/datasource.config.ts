@@ -13,7 +13,7 @@ export const baseConfig: DataSourceOptions = {
   synchronize: false,
   logging: false,
   subscribers: []
-} as const;
+};
 
 export const getDataSourceConfig = <T>(includeMigrations = false, entities: EntityTarget<T>[] = []): DataSourceOptions => {
   return includeMigrations

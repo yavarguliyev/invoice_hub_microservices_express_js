@@ -7,3 +7,4 @@ export * from './kafka/kafka-producer.infrastructure';
 export * from './redis/redis.infrastructure';
 export * from './logging/logger-tracer.infrastructure';
 export * from './server/express-server.infrastructure';
+export * from './transaction/transaction-coordinator.infrastructure';

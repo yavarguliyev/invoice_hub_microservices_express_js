@@ -5,4 +5,4 @@ export const ContainerItems = {
   IOrderService: 'IOrderService',
   IRoleService: 'IRoleService',
   IUserService: 'IUserService'
-} as const;
+};

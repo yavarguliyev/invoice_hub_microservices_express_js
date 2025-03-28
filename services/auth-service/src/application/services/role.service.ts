@@ -4,7 +4,7 @@ import { GetQueryResultsArgs, queryResults, ResponseResults, ResultMessage, Role
 import { RoleRepository } from 'domain/repositories/role.repository';
 
 export interface IRoleService {
-  get (query: GetQueryResultsArgs): Promise<ResponseResults<RoleDto>>;
+  get(query: GetQueryResultsArgs): Promise<ResponseResults<RoleDto>>;
 }
 
 export class RoleService implements IRoleService {
