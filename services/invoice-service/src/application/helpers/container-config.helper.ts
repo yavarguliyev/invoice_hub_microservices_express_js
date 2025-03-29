@@ -10,13 +10,16 @@ import {
   IEntityWithId,
   KafkaInfrastructure,
   RedisInfrastructure,
-  RegisterServiceOptions
+  RegisterServiceOptions,
+  TransactionCoordinatorInfrastructure
 } from '@invoice-hub/common';
 
 import { InvoicesController } from 'api/v1/invoices.controller';
 import { InvoiceService } from 'application/services/invoice.service';
 import { Invoice } from 'domain/entities/invoice.entity';
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
+import { InvoiceKafkaSubscriber } from 'application/kafka/invoice-kafka.subscriber';
+import { InvoiceTransactionManager } from 'application/transactions/invoice-transaction.manager';
 
 class InvoiceAppConfig {
   static entities = [Invoice];
@@ -29,7 +32,9 @@ class InvoiceAppConfig {
     { containerKey: ContainerKeys.INVOICE_DATA_LOADER, entity: Invoice }
   ];
 
-  private static services: RegisterServiceOptions<InvoiceService>[] = [
+  private static services: RegisterServiceOptions<InvoiceKafkaSubscriber | InvoiceTransactionManager | InvoiceService>[] = [
+    { id: ContainerItems.IInvoiceKafkaSubscriber, service: InvoiceKafkaSubscriber } as RegisterServiceOptions<InvoiceKafkaSubscriber>,
+    { id: ContainerItems.IInvoiceTransactionManager, service: InvoiceTransactionManager } as RegisterServiceOptions<InvoiceTransactionManager>,
     { id: ContainerItems.IInvoiceService, service: InvoiceService } as RegisterServiceOptions<InvoiceService>
   ];
 
@@ -46,7 +51,7 @@ class InvoiceAppConfig {
     dataLoaders: InvoiceAppConfig.dataLoaders,
     repositories: InvoiceAppConfig.repositories,
     services: InvoiceAppConfig.services,
-    serviceKeys: [ContainerItems.IInvoiceService]
+    serviceKeys: [ContainerItems.IInvoiceKafkaSubscriber, ContainerItems.IInvoiceTransactionManager, ContainerItems.IInvoiceService]
   };
 
   private static serverConfig = { clientId: ClientIds.INVOICE_SERVICE, controllers: InvoiceAppConfig.controllers };
@@ -54,7 +59,8 @@ class InvoiceAppConfig {
   private static gracefulShutDownService: GracefulShutDownServiceConfig[] = [
     { name: 'Redis', disconnect: () => Container.get(RedisInfrastructure).disconnect({ clientId: ClientIds.INVOICE_SERVICE }) },
     { name: 'Kafka', disconnect: () => Container.get(KafkaInfrastructure).disconnect() },
-    { name: 'Database', disconnect: () => Container.get(DbConnectionInfrastructure).disconnect({ clientId: ClientIds.INVOICE_SERVICE }) }
+    { name: 'Database', disconnect: () => Container.get(DbConnectionInfrastructure).disconnect({ clientId: ClientIds.INVOICE_SERVICE }) },
+    { name: 'Transaction Coordinator', disconnect: () => Container.get(TransactionCoordinatorInfrastructure).disconnect({ clientId: ClientIds.INVOICE_SERVICE }) }
   ];
 
   static get config () {

@@ -1,9 +1,12 @@
 import { createClient, RedisClientType } from 'redis';
 
+import { LoggerTracerInfrastructure } from '../logging/logger-tracer.infrastructure';
 import { safelyInitializeService, ensureInitialized } from '../../application/helpers/utility-functions.helper';
 import { redisConfig } from '../../core/configs/redis.config';
 import { ClientIds } from '../../domain/enums/events.enum';
-import { RedisBaseOptions, RedisRequestOptions, RedisSetOptions, RedisSetHashOptions, RedisDeleteKeysOptions } from '../../domain/interfaces/redis-request-options.interface';
+import {
+  RedisBaseOptions, RedisRequestOptions, RedisSetOptions, RedisSetHashOptions, RedisDeleteKeysOptions
+} from '../../domain/interfaces/redis-request-options.interface';
 
 export class RedisInfrastructure {
   private clientMap: Map<ClientIds, RedisClientType>;
@@ -29,11 +32,15 @@ export class RedisInfrastructure {
     });
   }
 
-  async get<T = string> ({ clientId, key }: RedisRequestOptions) {
-    const client = ensureInitialized({ connection: this.getClient({ clientId }), clientId });
+  async get<T> ({ clientId, key }: RedisRequestOptions) {
+    const client = this.getClient({ clientId });
     const value = await client?.get(key);
 
-    return value ? (JSON.parse(value) as T) : undefined;
+    if (!value) {
+      return;
+    }
+
+    return value as unknown as T;
   }
 
   async getHashKeys ({ clientId, key }: RedisRequestOptions) {
@@ -44,8 +51,13 @@ export class RedisInfrastructure {
   }
 
   async set ({ clientId, key, value, ttl }: RedisSetOptions) {
-    const client = ensureInitialized({ connection: this.getClient({ clientId }), clientId });
-    ttl ? await client?.setEx(key, ttl, value) : await client?.set(key, value);
+    const client = this.getClient({ clientId });
+  
+    if (ttl) {
+      await client?.set(key, value, { EX: ttl });
+    } else {
+      await client?.set(key, value);
+    }
   }
 
   async setHashKeys ({ clientId, key, cacheKey }: RedisSetHashOptions) {

@@ -3,15 +3,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { KafkaInfrastructure } from '../kafka/kafka.infrastructure';
 import { RedisInfrastructure } from '../redis/redis.infrastructure';
+import { isSerializedTransaction, deserializeTransaction } from '../../application/helpers/utility-functions.helper';
 import { Subjects, ClientIds, GroupIds } from '../../domain/enums/events.enum';
-import { ProcessType, DistributedTransactionStatus, ProcessStepStatus} from '../../domain/enums/distributed-transaction.enum';
-import { DistributedTransaction , TransactionCoordinatorOptions, TransactionOptions, TransactionEvent } from '../../domain/interfaces/distributed-transaction.interface';
+import { ProcessType, DistributedTransactionStatus, ProcessStepStatus } from '../../domain/enums/distributed-transaction.enum';
+import {
+  DistributedTransaction,
+  TransactionCoordinatorOptions,
+  TransactionOptions,
+  TransactionEvent,
+  SerializedTransaction
+} from '../../domain/interfaces/distributed-transaction.interface';
+import { LoggerTracerInfrastructure } from '../logging/logger-tracer.infrastructure';
 
 export class TransactionCoordinatorInfrastructure {
   private readonly kafka: KafkaInfrastructure;
   private readonly redis: RedisInfrastructure;
   private readonly clientId: ClientIds;
   private readonly transactionPrefix = 'transaction:';
+  private timeoutCheckerId?: NodeJS.Timeout;
+  private isInitialized = false;
 
   constructor (options: TransactionCoordinatorOptions) {
     this.kafka = Container.get(KafkaInfrastructure);
@@ -19,26 +29,33 @@ export class TransactionCoordinatorInfrastructure {
     this.clientId = options.clientId;
   }
 
-  async initialize (): Promise<void> {
+  async initialize (groupId: GroupIds): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
     await this.kafka.subscribe({
       topicName: Subjects.TRANSACTION_STEP_COMPLETED,
       handler: this.handleTransactionStepCompleted.bind(this),
-      options: { groupId: GroupIds.BASE_GROUP }
+      options: { groupId }
     });
 
     await this.kafka.subscribe({
       topicName: Subjects.TRANSACTION_STEP_FAILED,
       handler: this.handleTransactionStepFailed.bind(this),
-      options: { groupId: GroupIds.BASE_GROUP }
+      options: { groupId }
     });
 
     await this.kafka.subscribe({
       topicName: Subjects.TRANSACTION_TIMEOUT,
       handler: this.handleTransactionTimeout.bind(this),
-      options: { groupId: GroupIds.BASE_GROUP }
+      options: { groupId }
     });
 
     this.startTimeoutChecker();
+    this.isInitialized = true;
+
+    LoggerTracerInfrastructure.log('Transaction Coordinator initialized successfully');
   }
 
   async startTransaction (options: TransactionOptions): Promise<string> {
@@ -64,7 +81,18 @@ export class TransactionCoordinatorInfrastructure {
     return transactionId;
   }
 
-  private async progressTransaction(transactionId: string): Promise<void> {
+  async disconnect (options?: { clientId?: ClientIds }): Promise<void> {
+    const shutdownClient = options?.clientId || this.clientId;
+    
+    LoggerTracerInfrastructure.log(`Shutting down Transaction Coordinator for client: ${shutdownClient}...`);
+    
+    if (shutdownClient === this.clientId) {
+      this.stopTimeoutChecker();
+      this.isInitialized = false;
+    }
+  }
+
+  private async progressTransaction (transactionId: string): Promise<void> {
     const transaction = await this.getTransactionState(transactionId);
 
     if (!transaction ||
@@ -114,8 +142,8 @@ export class TransactionCoordinatorInfrastructure {
     currentStep.completedAt = new Date();
 
     transaction.currentStep++;
-    await this.storeTransactionState(transaction);
 
+    await this.storeTransactionState(transaction);
     await this.progressTransaction(event.transactionId);
   }
 
@@ -180,8 +208,8 @@ export class TransactionCoordinatorInfrastructure {
 
     transaction.status = DistributedTransactionStatus.COMPENSATED;
     transaction.completedAt = new Date();
-    await this.storeTransactionState(transaction);
 
+    await this.storeTransactionState(transaction);
     await this.kafka.publish({
       topicName: Subjects.TRANSACTION_COMPENSATION_COMPLETED,
       message: JSON.stringify({
@@ -227,33 +255,48 @@ export class TransactionCoordinatorInfrastructure {
   }
 
   private startTimeoutChecker (): void {
+    this.stopTimeoutChecker();
+
     const checkTimeouts = async (): Promise<void> => {
-      const keys = await this.getTransactionKeys();
-      const now = new Date();
-      const timeoutThreshold = 5 * 60 * 1000;
+      try {
+        const keys = await this.getTransactionKeys();
+        const now = new Date();
+        const timeoutThreshold = 5 * 60 * 1000;
 
-      for (const key of keys) {
-        const transaction = await this.getTransactionByKey(key);
+        for (const key of keys) {
+          const transaction = await this.getTransactionByKey(key);
 
-        if (transaction?.status === DistributedTransactionStatus.IN_PROGRESS) {
-          const currentStep = transaction.steps[transaction.currentStep];
+          if (transaction?.status === DistributedTransactionStatus.IN_PROGRESS) {
+            const currentStep = transaction.steps[transaction.currentStep];
 
-          if (currentStep.startedAt &&
-            (new Date(currentStep.startedAt).getTime() + timeoutThreshold < now.getTime())) {
-            await this.kafka.publish({
-              topicName: Subjects.TRANSACTION_TIMEOUT,
-              message: JSON.stringify({
-                transactionId: transaction.transactionId
-              })
-            });
+            if (currentStep.startedAt &&
+              (new Date(currentStep.startedAt).getTime() + timeoutThreshold < now.getTime())) {
+              await this.kafka.publish({
+                topicName: Subjects.TRANSACTION_TIMEOUT,
+                message: JSON.stringify({
+                  transactionId: transaction.transactionId
+                })
+              });
+            }
           }
         }
+      } catch (error) {
+        LoggerTracerInfrastructure.log(`Error in timeout checker: ${error instanceof Error ? error.message : String(error)}`);
       }
 
-      setTimeout(checkTimeouts, 60000);
+      if (this.isInitialized) {
+        this.timeoutCheckerId = setTimeout(checkTimeouts, 60000);
+      }
     };
 
-    setTimeout(checkTimeouts, 60000);
+    this.timeoutCheckerId = setTimeout(checkTimeouts, 60000);
+  }
+
+  private stopTimeoutChecker (): void {
+    if (this.timeoutCheckerId) {
+      clearTimeout(this.timeoutCheckerId);
+      delete this.timeoutCheckerId;
+    }
   }
 
   async getTransactionState (transactionId: string): Promise<DistributedTransaction | undefined> {
@@ -262,26 +305,56 @@ export class TransactionCoordinatorInfrastructure {
   }
 
   private async getTransactionByKey (key: string): Promise<DistributedTransaction | undefined> {
-    const data = await this.redis.get<string>({
-      clientId: this.clientId,
-      key
-    });
-
+    const data = await this.redis.get<string>({ clientId: this.clientId, key });
     if (!data) {
-      return undefined;
+      return;
     }
 
-    return JSON.parse(data) as DistributedTransaction;
+    try {
+      if (typeof data !== 'string') {
+        return;
+      }
+
+      const parsedData: unknown = JSON.parse(data);
+      if (isSerializedTransaction(parsedData)) {
+        return deserializeTransaction(parsedData);
+      }
+
+      return;
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error parsing transaction data: ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
   }
 
   private async storeTransactionState (transaction: DistributedTransaction): Promise<void> {
     const key = `${this.transactionPrefix}${transaction.transactionId}`;
-    await this.redis.set({
-      clientId: this.clientId,
-      key,
-      value: JSON.stringify(transaction),
-      ttl: 86400
-    });
+
+    try {
+      const serializedTransaction: SerializedTransaction = {
+        ...transaction,
+        processType: transaction.processType.toString(),
+        startedAt: transaction.startedAt.toISOString(),
+        completedAt: transaction.completedAt?.toISOString(),
+        steps: transaction.steps.map(step => ({
+          ...step,
+          startedAt: step.startedAt?.toISOString(),
+          completedAt: step.completedAt?.toISOString()
+        }))
+      };
+
+      const serializedData = JSON.stringify(serializedTransaction);
+
+      await this.redis.set({
+        clientId: this.clientId,
+        key,
+        value: serializedData,
+        ttl: 86400
+      });
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error storing transaction state: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
 
   private async getTransactionKeys (): Promise<string[]> {
@@ -298,4 +371,4 @@ export class TransactionCoordinatorInfrastructure {
   private getCompensationTopicName (processType: ProcessType, stepName: string): string {
     return `${processType.toLowerCase()}-compensate-${stepName.toLowerCase()}`;
   }
-} 
+}

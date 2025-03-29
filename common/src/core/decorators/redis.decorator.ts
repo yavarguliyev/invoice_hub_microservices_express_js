@@ -13,7 +13,7 @@ export function RedisDecorator (options: RedisDecoratorOption) {
       const { cacheKey: key, ttl } = generateCacheKey({ keyTemplate, args });
 
       const redis = Container.get(RedisInfrastructure);
-      const cachedValue = await redis.get({ clientId, key });
+      const cachedValue = await redis.get<string>({ clientId, key });
       if (cachedValue) {
         return typeof cachedValue === 'string' ? JSON.parse(cachedValue) : cachedValue;
       }

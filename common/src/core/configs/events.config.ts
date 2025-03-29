@@ -81,5 +81,17 @@ export const eventPublisherConfig: Record<string, EventDecoratorOptions> = {
         status: ProcessStepStatus.COMPENSATED
       };
     }
+  },
+  INVOICE_GET_BY: { topicName: Subjects.FETCH_INVOICE_RESPONSE, prepareMessage },
+  INVOICE_CREATE_SUCCESS: { 
+    topicName: Subjects.INVOICE_GENERATION_SUCCESS, 
+    prepareMessage,
+    keyTemplates: [
+      { clientId: ClientIds.INVOICE_SERVICE, keyTemplate: REDIS_CACHE_KEYS.INVOICE_GET_LIST }
+    ]
+  },
+  INVOICE_CREATE_FAILED: { 
+    topicName: Subjects.INVOICE_GENERATION_FAILED, 
+    prepareMessage 
   }
 };

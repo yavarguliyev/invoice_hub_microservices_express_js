@@ -16,7 +16,9 @@ import {
   EnsureInitializedOptions
 } from '../../domain/interfaces/utility-functions-options.interface';
 import { KafkaResponse } from '../../domain/interfaces/kafka-request-options.interface';
+import { DistributedTransaction, SerializedTransaction } from '../../domain/interfaces/distributed-transaction.interface';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
+import { ProcessType } from '../../domain/enums/distributed-transaction.enum';
 
 export const safelyInitializeService = async ({ clientId, initializeFn }: ServiceInitializationOptions): Promise<void> => {
   try {
@@ -113,3 +115,43 @@ export const prepareMessage = (result: unknown, args: unknown[]) => {
 
   return result;
 };
+
+export const toProcessType = (value: string): ProcessType => {
+  if (Object.values(ProcessType).includes(value as ProcessType)) {
+    return value as ProcessType;
+  }
+
+  throw new Error(`Invalid process type: ${value}`);
+}
+
+export const isSerializedTransaction = (obj: unknown): obj is SerializedTransaction => {
+  if (!obj || typeof obj !== 'object') return false;
+
+  const transaction = obj as Record<string, unknown>;
+
+  return (
+    typeof transaction.transactionId === 'string' &&
+    typeof transaction.processType === 'string' &&
+    typeof transaction.status === 'string' &&
+    typeof transaction.startedAt === 'string' &&
+    (transaction.completedAt === undefined || typeof transaction.completedAt === 'string') &&
+    typeof transaction.currentStep === 'number' &&
+    typeof transaction.initiatedBy === 'string' &&
+    transaction.payload !== undefined &&
+    Array.isArray(transaction.steps)
+  );
+}
+
+export const deserializeTransaction = (serialized: SerializedTransaction): DistributedTransaction => {
+  return {
+    ...serialized,
+    processType: toProcessType(serialized.processType),
+    startedAt: new Date(serialized.startedAt),
+    completedAt: serialized.completedAt ? new Date(serialized.completedAt) : undefined,
+    steps: serialized.steps.map(step => ({
+      ...step,
+      startedAt: step.startedAt ? new Date(step.startedAt) : undefined,
+      completedAt: step.completedAt ? new Date(step.completedAt) : undefined
+    }))
+  };
+}

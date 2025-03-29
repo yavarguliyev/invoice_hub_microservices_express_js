@@ -1,4 +1,4 @@
-import { JsonController, Get, QueryParams, Authorized, Post, CurrentUser, Body, HttpCode, Patch, Param, Params } from 'routing-controllers';
+import { JsonController, Get, QueryParams, Authorized, Post, CurrentUser, Body, HttpCode, Params } from 'routing-controllers';
 import { createVersionedRoute, GetQueryResultsArgs, Roles, UserDto, CreateOrderArgs, GetOrderArgs } from '@invoice-hub/common';
 
 import { BaseController } from 'api/base.controller';
@@ -21,15 +21,5 @@ export class OrdersController extends BaseController {
   @Post('/')
   async createOrder (@CurrentUser() currentUser: UserDto, @Body() args: CreateOrderArgs) {
     return this.orderService.createOrder(currentUser, args);
-  }
-
-  @Patch('/:id/approve')
-  async approveOrder (@Param('id') orderId: string) {
-    return this.orderService.approveOrder(orderId);
-  }
-
-  @Patch('/:id/cancel')
-  async cancelOrder (@Param('id') orderId: string) {
-    return this.orderService.cancelOrder(orderId);
   }
 }

@@ -2,19 +2,22 @@ export enum Subjects {
   FETCH_USER_REQUEST = 'fetch-user-request',
   FETCH_USER_RESPONSE = 'fetch-user-response',
 
-  ORDER_CREATED = 'order-created',
-  ORDER_CANCELED = 'order-canceled',
   FETCH_ORDER_REQUEST = 'fetch-order-request',
   FETCH_ORDER_RESPONSE = 'fetch-order-response',
+  
+  FETCH_INVOICE_REQUEST = 'fetch-invoice-request',
+  FETCH_INVOICE_RESPONSE = 'fetch-invoice-response',
 
   ORDER_APPROVAL_STEP_GENERATE_INVOICE = 'order_approval-step-generate_invoice',
   ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS = 'order_approval-step-update_order_status',
-  ORDER_APPROVAL_COMPENSATE_GENERATE_INVOICE = 'order_approval-compensate-generate_invoice',
+  ORDER_APPROVAL_STEP_INVOICE_GENERATE = 'order_approval-step-invoice-generate',
+  ORDER_APPROVAL_COMPENSATE_INVOICE_GENERATE = 'order_approval-compensate-invoice-generate',
   ORDER_APPROVAL_COMPENSATE_UPDATE_ORDER_STATUS = 'order_approval-compensate-update_order_status',
 
   UPDATE_ORDER_STATUS = 'update_order_status',
 
   INVOICE_GENERATE = 'invoice-generate',
+  INVOICE_GENERATION_SUCCESS = 'invoice-generation-success',
   
   TRANSACTION_START = 'transaction-start',
   TRANSACTION_STEP_COMPLETED = 'transaction-step-completed',
@@ -25,8 +28,6 @@ export enum Subjects {
   TRANSACTION_COMPENSATION_COMPLETED = 'transaction-compensation-completed',
   TRANSACTION_TIMEOUT = 'transaction-timeout',
   
-  ORDER_APPROVAL_PROCESS_START = 'order-approval-process-start',
-  ORDER_STATUS_CHANGED = 'order-status-changed',
   INVOICE_GENERATION_FAILED = 'invoice-generation-failed',
   ORDER_STATUS_REVERTED = 'order-status-reverted'
 }
@@ -45,8 +46,8 @@ export enum GroupIds {
 }
 
 export enum ClientIds {
-  API_GATEWAY = 'api-gateway',
-  AUTH_SERVICE = 'auth-service',
-  INVOICE_SERVICE = 'invoice-service',
-  ORDER_SERVICE = 'order-service'
+  API_GATEWAY = 'Api Gateway',
+  AUTH_SERVICE = 'Auth Service',
+  INVOICE_SERVICE = 'Invoice Service',
+  ORDER_SERVICE = 'Order Service'
 }

@@ -24,7 +24,6 @@ import { User } from 'domain/entities/user.entity';
 export interface IUserService {
   initialize(): Promise<void>;
   get(query: GetQueryResultsArgs): Promise<ResponseResults<UserDto>>;
-  getBy(message: string): Promise<void>;
 }
 
 export class UserService implements IUserService {
@@ -59,7 +58,9 @@ export class UserService implements IUserService {
 
   async initialize () {
     await this.kafka.subscribe({
-      topicName: Subjects.FETCH_USER_REQUEST, handler: this.getBy.bind(this), options: { groupId: GroupIds.AUTH_SERVICE_GROUP }
+      topicName: Subjects.FETCH_USER_REQUEST,
+      handler: this.handleUserFetchRequest.bind(this),
+      options: { groupId: GroupIds.AUTH_SERVICE_GROUP }
     });
   }
 
@@ -72,12 +73,16 @@ export class UserService implements IUserService {
     return { payloads, total, result: ResultMessage.SUCCESS };
   }
 
+  private async handleUserFetchRequest (message: string): Promise<void> {
+    await this.getBy(message);
+  }
+
   @EventPublisherDecorator(eventPublisherConfig.USER_GET_BY)
-  async getBy (message: string) {
+  private async getBy (message: string) {
     const { message: request } = JSON.parse(message);
     const { userId: id } = JSON.parse(request);
 
     await this.userDtoLoaderById.clearAll();
-    await this.userDtoLoaderById.load(id);
+    return await this.userDtoLoaderById.load(id);
   }
 }

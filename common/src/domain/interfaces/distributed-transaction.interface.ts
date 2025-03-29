@@ -1,5 +1,5 @@
 import { ClientIds } from '../enums/events.enum';
-import { ProcessStepStatus, ProcessType, DistributedTransactionStatus } from '../enums/distributed-transaction.enum';
+import { ProcessStepStatus, ProcessType } from '../enums/distributed-transaction.enum';
 
 export interface ProcessStep {
   name: string;
@@ -10,16 +10,45 @@ export interface ProcessStep {
   error?: string;
 }
 
+export interface TransactionStep {
+  name: string;
+  service: string;
+  status: string;
+  error?: string;
+  startedAt?: Date;
+  completedAt?: Date;
+}
+
+export interface SerializedTransaction {
+  transactionId: string;
+  processType: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  currentStep: number;
+  initiatedBy: string;
+  payload: Record<string, unknown>;
+  steps: Array<{
+    name: string;
+    service: string;
+    status: string;
+    error?: string;
+    startedAt?: string;
+    completedAt?: string;
+  }>;
+  error?: string;
+}
+
 export interface DistributedTransaction {
   transactionId: string;
   processType: ProcessType;
+  status: string;
+  startedAt: Date;
+  completedAt?: Date;
+  currentStep: number;
   initiatedBy: string;
   payload: Record<string, unknown>;
-  startedAt: Date;
-  currentStep: number;
-  steps: ProcessStep[];
-  completedAt?: Date;
-  status: DistributedTransactionStatus;
+  steps: TransactionStep[];
   error?: string;
 }
 

@@ -10,7 +10,8 @@ import {
   IEntityWithId,
   KafkaInfrastructure,
   RedisInfrastructure,
-  RegisterServiceOptions
+  RegisterServiceOptions,
+  TransactionCoordinatorInfrastructure
 } from '@invoice-hub/common';
 
 import { AuthController } from 'api/v1/auth.controller';
@@ -66,7 +67,8 @@ class AppConfig {
   private static gracefulShutDownService: GracefulShutDownServiceConfig[] = [
     { name: 'Redis', disconnect: () => Container.get(RedisInfrastructure).disconnect({ clientId: ClientIds.AUTH_SERVICE }) },
     { name: 'Kafka', disconnect: () => Container.get(KafkaInfrastructure).disconnect() },
-    { name: 'Database', disconnect: () => Container.get(DbConnectionInfrastructure).disconnect({ clientId: ClientIds.AUTH_SERVICE }) }
+    { name: 'Database', disconnect: () => Container.get(DbConnectionInfrastructure).disconnect({ clientId: ClientIds.AUTH_SERVICE }) },
+    { name: 'Transaction Coordinator', disconnect: () => Container.get(TransactionCoordinatorInfrastructure).disconnect({ clientId: ClientIds.AUTH_SERVICE }) }
   ];
 
   static get config () {
