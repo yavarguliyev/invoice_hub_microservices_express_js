@@ -170,7 +170,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{URL}}/invoices/api/v1/invoices/4973373e-724c-4945-bafe-11341754d67b",
+							"raw": "{{URL}}/invoices/api/v1/invoices/bc465de2-0600-4518-b91d-e0ec6aaa9dab",
 							"host": [
 								"{{URL}}"
 							],
@@ -179,7 +179,7 @@
 								"api",
 								"v1",
 								"invoices",
-								"4973373e-724c-4945-bafe-11341754d67b"
+								"bc465de2-0600-4518-b91d-e0ec6aaa9dab"
 							]
 						}
 					},
@@ -311,7 +311,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{URL}}/orders/api/v1/orders/8cec3312-94e8-4120-b9c1-46634a7fc395",
+							"raw": "{{URL}}/orders/api/v1/orders/4cb40405-1531-44bd-ac92-7b887783b89c",
 							"host": [
 								"{{URL}}"
 							],
@@ -320,7 +320,7 @@
 								"api",
 								"v1",
 								"orders",
-								"8cec3312-94e8-4120-b9c1-46634a7fc395"
+								"4cb40405-1531-44bd-ac92-7b887783b89c"
 							]
 						}
 					},
@@ -343,7 +343,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"totalAmount\": 180.20\n}",
+							"raw": "{\n    \"totalAmount\": 180.13\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -360,70 +360,6 @@
 								"api",
 								"v1",
 								"orders"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "APPROVE ORDER",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{invoice_hub_access_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"url": {
-							"raw": "{{URL}}/orders/api/v1/orders/8cec3312-94e8-4120-b9c1-46634a7fc395/approve",
-							"host": [
-								"{{URL}}"
-							],
-							"path": [
-								"orders",
-								"api",
-								"v1",
-								"orders",
-								"8cec3312-94e8-4120-b9c1-46634a7fc395",
-								"approve"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "CANCEL ORDER",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{invoice_hub_access_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"url": {
-							"raw": "{{URL}}/orders/api/v1/orders/8cec3312-94e8-4120-b9c1-46634a7fc395/cancel",
-							"host": [
-								"{{URL}}"
-							],
-							"path": [
-								"orders",
-								"api",
-								"v1",
-								"orders",
-								"8cec3312-94e8-4120-b9c1-46634a7fc395",
-								"cancel"
 							]
 						}
 					},

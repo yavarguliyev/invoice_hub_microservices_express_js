@@ -1,6 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
 
-import { LoggerTracerInfrastructure } from '../logging/logger-tracer.infrastructure';
 import { safelyInitializeService, ensureInitialized } from '../../application/helpers/utility-functions.helper';
 import { redisConfig } from '../../core/configs/redis.config';
 import { ClientIds } from '../../domain/enums/events.enum';

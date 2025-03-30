@@ -15,7 +15,6 @@ import {
   ServiceInitializationOptions,
   EnsureInitializedOptions
 } from '../../domain/interfaces/utility-functions-options.interface';
-import { KafkaResponse } from '../../domain/interfaces/kafka-request-options.interface';
 import { DistributedTransaction, SerializedTransaction } from '../../domain/interfaces/distributed-transaction.interface';
 import { LoggerTracerInfrastructure } from '../../infrastructure/logging/logger-tracer.infrastructure';
 import { ProcessType } from '../../domain/enums/distributed-transaction.enum';
@@ -100,17 +99,28 @@ export const getErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : String(error);
 };
 
-export const prepareMessage = (result: unknown, args: unknown[]) => {
+export const prepareMessage = (result: unknown, args: unknown[], options?: {
+  isManualCancel?: boolean;
+  customFormatter?: (data: Record<string, unknown>) => Record<string, unknown>;
+}): unknown => {
+  if (options?.isManualCancel && args.length > 0) {
+    return { transactionId: `manual-cancel-${args[0]}`, orderId: args[0] };
+  }
+
+  if (options?.customFormatter && typeof result === 'object') {
+    return options.customFormatter(result as Record<string, unknown>);
+  }
+
   const [firstArg] = args;
-
   if (typeof firstArg === 'string') {
-    const parsedArg = JSON.parse(firstArg);
-
-    if ('correlationId' in parsedArg) {
-      return { ...parsedArg, message: JSON.stringify(result) } as KafkaResponse;
+    try {
+      const parsedArg = JSON.parse(firstArg);
+      if ('correlationId' in parsedArg) {
+        return { ...parsedArg, message: JSON.stringify(result) };
+      }
+    } catch (error) {
+      LoggerTracerInfrastructure.log(getErrorMessage(error));
     }
-
-    return result;
   }
 
   return result;

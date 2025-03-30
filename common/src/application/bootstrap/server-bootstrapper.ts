@@ -102,7 +102,7 @@ export class ServerBootstrapper {
 
     this.configureLifecycleServices(gracefulShutdownServices);
     this.configureControllersAndServices({ services, clientId, repositories, controllers, useTypeOrm });
-
+    
     if (useTypeOrm) {
       await this.configureKafkaServices(serviceKeys);
     }

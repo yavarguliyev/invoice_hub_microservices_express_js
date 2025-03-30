@@ -14,7 +14,7 @@ import {
   Subjects,
   GroupIds,
   EventPublisherDecorator,
-  eventPublisherConfig,
+  userEventPublisher,
   DataLoaderInfrastructure
 } from '@invoice-hub/common';
 
@@ -77,12 +77,12 @@ export class UserService implements IUserService {
     await this.getBy(message);
   }
 
-  @EventPublisherDecorator(eventPublisherConfig.USER_GET_BY)
+  @EventPublisherDecorator(userEventPublisher.USER_GET_BY)
   private async getBy (message: string) {
     const { message: request } = JSON.parse(message);
     const { userId: id } = JSON.parse(request);
 
     await this.userDtoLoaderById.clearAll();
-    return await this.userDtoLoaderById.load(id);
+    return this.userDtoLoaderById.load(id);
   }
 }

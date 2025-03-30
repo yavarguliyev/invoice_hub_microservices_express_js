@@ -1,4 +1,4 @@
-import { Container, Service } from 'typedi';
+import { Container } from 'typedi';
 import DataLoader from 'dataloader';
 import { plainToInstance } from 'class-transformer';
 import {
@@ -15,12 +15,8 @@ import {
   GetOrderArgs,
   DataLoaderInfrastructure,
   ContainerKeys,
-  RedisCacheInvalidateDecorator,
   ContainerHelper,
-  ContainerItems,
-  Subjects,
-  ProcessType,
-  ProcessStepStatus
+  ContainerItems
 } from '@invoice-hub/common';
 
 import { buildKafkaRequestOptionsHelper } from 'application/helpers/kafka-request.helper';
@@ -34,11 +30,10 @@ export interface IOrderService {
   get(query: GetQueryResultsArgs): Promise<ResponseResults<OrderDto>>;
   getById(args: GetOrderArgs): Promise<ResponseResults<OrderDto & { user: UserDto }>>;
   createOrder(currentUser: UserDto, args: CreateOrderArgs): Promise<ResponseResults<OrderDto>>;
-  getOrderTransaction(orderId: string): Promise<ResponseResults<unknown>>;
 }
 
-@Service()
 export class OrderService implements IOrderService {
+  // #region DI
   private _orderRepository?: OrderRepository;
   private _orderDtoLoaderById?: DataLoader<string, OrderDto>;
   private _transactionManager?: IOrderTransactionManager;
@@ -76,6 +71,7 @@ export class OrderService implements IOrderService {
 
     return this._kafkaSubscriber;
   }
+  // #endregion
 
   async initialize () {
     await this.kafkaSubscriber.initialize();
@@ -104,7 +100,6 @@ export class OrderService implements IOrderService {
     return { payload: { ...orderDto, user }, result: ResultMessage.SUCCESS };
   }
 
-  @RedisCacheInvalidateDecorator(redisCacheConfig.ORDER_LIST)
   async createOrder ({ id }: UserDto, args: CreateOrderArgs): Promise<ResponseResults<OrderDto>> {
     const order = this.orderRepository.create({ ...args, userId: id, status: OrderStatus.PENDING });
     const newOrder = await this.orderRepository.save(order);
@@ -113,20 +108,7 @@ export class OrderService implements IOrderService {
       const transactionId = await this.transactionManager.startFailedOrderTransaction(newOrder, 'Invalid total amount', OrderStatus.CANCELLED);
       const payload = plainToInstance(OrderDto, newOrder, { excludeExtraneousValues: true });
 
-      await this.kafkaSubscriber.publish(
-        Subjects.TRANSACTION_STEP_FAILED,
-        JSON.stringify({
-          transactionId,
-          processType: ProcessType.ORDER_APPROVAL,
-          stepName: Subjects.UPDATE_ORDER_STATUS,
-          status: ProcessStepStatus.FAILED,
-          error: 'Invalid total amount',
-          payload: {
-            orderId: newOrder.id,
-            finalStatus: OrderStatus.CANCELLED
-          }
-        })
-      );
+      this.kafkaSubscriber.handleCompensateOrderStatusFailedPublisher(transactionId, order);
 
       return { payload, result: ResultMessage.FAILED_ORDER_UPDATE_STATUS };
     }
@@ -135,9 +117,5 @@ export class OrderService implements IOrderService {
     const payload = plainToInstance(OrderDto, newOrder, { excludeExtraneousValues: true });
 
     return { payload, result: ResultMessage.SUCCESS };
-  }
-
-  async getOrderTransaction (orderId: string): Promise<ResponseResults<unknown>> {
-    return this.transactionManager.getOrderTransaction(orderId);
   }
 }

@@ -7,10 +7,10 @@ import { Invoice } from 'domain/entities/invoice.entity';
 export interface IInvoiceTransactionManager {
   initialize(): Promise<void>;
   generateInvoiceInTransaction(transactionId: string, orderId: string, userId: string, totalAmount: number): Promise<Invoice>;
-  compensateInvoice(transactionId: string, orderId: string): Promise<void>;
 }
 
 export class InvoiceTransactionManager implements IInvoiceTransactionManager {
+  // #region DI
   private _transactionCoordinator?: TransactionCoordinatorInfrastructure;
   private _invoiceRepository?: InvoiceRepository;
 
@@ -29,6 +29,7 @@ export class InvoiceTransactionManager implements IInvoiceTransactionManager {
 
     return this._invoiceRepository;
   }
+  // #endregion
 
   async initialize (): Promise<void> {
     await this.transactionCoordinator.initialize(GroupIds.INVOICE_SERVICE_GROUP);
@@ -51,16 +52,5 @@ export class InvoiceTransactionManager implements IInvoiceTransactionManager {
     LoggerTracerInfrastructure.log(`Invoice generated with ID: ${singleInvoice.id} in transaction ${transactionId}`);
 
     return singleInvoice;
-  }
-
-  async compensateInvoice (transactionId: string, orderId: string): Promise<void> {
-    const invoice = await this.invoiceRepository.findOne({ where: { orderId } });
-
-    if (invoice) {
-      await this.invoiceRepository.save({ ...invoice, status: InvoiceStatus.CANCELLED });
-      LoggerTracerInfrastructure.log(`Cancelled invoice for order ${orderId} in transaction ${transactionId}`);
-    } else {
-      LoggerTracerInfrastructure.log(`No invoice found for order ${orderId} in transaction ${transactionId}`);
-    }
   }
 }

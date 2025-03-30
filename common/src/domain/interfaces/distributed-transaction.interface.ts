@@ -71,3 +71,7 @@ export interface TransactionOptions {
   payload: Record<string, unknown>;
   initiatedBy: string;
 }
+
+export interface CompensationEvent extends TransactionEvent {
+  failedStep?: string;
+}

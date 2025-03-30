@@ -31,6 +31,7 @@ export interface IInvoiceService {
 }
 
 export class InvoiceService implements IInvoiceService {
+  // #region DI
   private _invoiceRepository?: InvoiceRepository;
   private _invoiceDtoLoaderById?: DataLoader<string, InvoiceDto>;
   private _transactionManager?: IInvoiceTransactionManager;
@@ -77,6 +78,7 @@ export class InvoiceService implements IInvoiceService {
 
     return this._kafka;
   }
+  // #endregion
 
   async initialize () {
     await this.kafkaSubscriber.initialize();

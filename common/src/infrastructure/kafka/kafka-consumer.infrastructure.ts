@@ -26,14 +26,14 @@ export class KafkaConsumerInfrastructure {
 
     this.topicHandlers.set(topicName, handler);
     this.subscribedTopics.add(topicName);
-    
+
     if (this.isConsumerRunning) {
       await this.stopConsumer();
     }
-    
+
     this.pendingSubscriptions.push(topicName);
     await this.consumer.subscribe({ topic: topicName, fromBeginning: false });
-    
+
     if (!this.isConsumerRunning) {
       await this.startConsumer();
     }
@@ -75,9 +75,7 @@ export class KafkaConsumerInfrastructure {
 
           const messageValue = message.value.toString();
           await handler(messageValue);
-        } catch (error) {
-          LoggerTracerInfrastructure.log(`Error processing message: ${getErrorMessage(error)}`);
-        }
+        } catch {}
       }
     });
   }

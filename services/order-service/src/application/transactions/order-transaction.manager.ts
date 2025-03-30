@@ -26,6 +26,7 @@ export interface IOrderTransactionManager {
 }
 
 export class OrderTransactionManager implements IOrderTransactionManager {
+  // #region DI
   private _transactionCoordinator?: TransactionCoordinatorInfrastructure;
   private _orderRepository?: OrderRepository;
 
@@ -44,6 +45,7 @@ export class OrderTransactionManager implements IOrderTransactionManager {
 
     return this._orderRepository;
   }
+  // #endregion
 
   async initialize (): Promise<void> {
     await this.transactionCoordinator.initialize(GroupIds.ORDER_SERVICE_GROUP);

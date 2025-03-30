@@ -1,7 +1,5 @@
 import { Kafka, Producer, Partitioners, Admin } from 'kafkajs';
 
-import { LoggerTracerInfrastructure } from '../logging/logger-tracer.infrastructure';
-import { getErrorMessage } from '../../application/helpers/utility-functions.helper';
 import { KafkaPublisherOptions, KafkaTopicCreationOptions } from '../../domain/interfaces/kafka-request-options.interface';
 
 export class KafkaProducerInfrastructure {
@@ -19,7 +17,6 @@ export class KafkaProducerInfrastructure {
 
   async publish ({ topicName, message }: KafkaPublisherOptions) {
     await this.producer.send({ topic: topicName, messages: [{ value: message }] });
-    LoggerTracerInfrastructure.log(`Message sent to topic ${topicName}`);
   }
 
   async createTopic ({ topicName }: KafkaTopicCreationOptions) {
@@ -28,9 +25,7 @@ export class KafkaProducerInfrastructure {
       if (!existingTopics.includes(topicName)) {
         await this.admin.createTopics({ topics: [{ topic: topicName, numPartitions: 3, replicationFactor: 2 }], validateOnly: false });
       }
-    } catch (error) {
-      LoggerTracerInfrastructure.log(`Error creating topic ${topicName}: ${getErrorMessage(error)}`, 'error');
-    }
+    } catch {}
   }
 
   async disconnect () {

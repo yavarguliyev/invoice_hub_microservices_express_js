@@ -6,9 +6,7 @@ import {
   Subjects,
   LoggerTracerInfrastructure,
   EventPublisherDecorator,
-  eventPublisherConfig,
-  ProcessType,
-  ProcessStepStatus,
+  orderEventPublisher,
   OrderStatus,
   DataLoaderInfrastructure,
   ContainerKeys,
@@ -16,7 +14,10 @@ import {
   KafkaRequestOptions,
   ContainerHelper,
   ContainerItems,
-  BadRequestError
+  BadRequestError,
+  transactionEventPublisher,
+  ProcessStepStatus,
+  ProcessType
 } from '@invoice-hub/common';
 
 import { IOrderTransactionManager } from 'application/transactions/order-transaction.manager';
@@ -25,10 +26,11 @@ import { Order } from 'domain/entities/order.entity';
 export interface IOrderKafkaSubscriber {
   initialize(): Promise<void>;
   requestUserData(options: KafkaRequestOptions[]): Promise<string[]>;
-  publish(topic: Subjects, message: string): Promise<void>;
+  handleCompensateOrderStatusFailedPublisher(transactionId: string, order: Order): unknown;
 }
 
 export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
+  // #region DI
   private _kafka?: KafkaInfrastructure;
   private _transactionManager?: IOrderTransactionManager;
   private _orderDtoLoaderById?: DataLoader<string, OrderDto>;
@@ -57,12 +59,18 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
 
     return this._orderDtoLoaderById;
   }
+  // #endregion
 
   async initialize (): Promise<void> {
     await Promise.all([
       this.kafka.subscribe({
         topicName: Subjects.FETCH_ORDER_REQUEST,
         handler: this.handleOrderFetchRequest.bind(this),
+        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
+      }),
+      this.kafka.subscribe({
+        topicName: Subjects.TRANSACTION_COMPENSATION_START,
+        handler: this.handleTransactionCompensationStart.bind(this),
         options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
       }),
       this.kafka.subscribe({
@@ -74,6 +82,11 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
         topicName: Subjects.ORDER_APPROVAL_COMPENSATE_UPDATE_ORDER_STATUS,
         handler: this.handleCompensateOrderStatus.bind(this),
         options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
+      }),
+      this.kafka.subscribe({
+        topicName: Subjects.TRANSACTION_COMPLETED,
+        handler: this.handleTransactionCompleted.bind(this),
+        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
       })
     ]);
   }
@@ -82,20 +95,28 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     return await this.kafka.requestResponse(options);
   }
 
-  async publish (topic: Subjects, message: string): Promise<void> {
-    await this.kafka.publish({ topicName: topic, message });
+  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_FAILED)
+  handleCompensateOrderStatusFailedPublisher (transactionId: string, order: Order) {
+    return { ...order, transactionId, error: 'Invalid total amount' };
   }
 
   private async handleOrderFetchRequest (message: string): Promise<void> {
     await this.getBy(message);
   }
 
-  @EventPublisherDecorator(eventPublisherConfig.ORDER_GET_BY)
+  @EventPublisherDecorator(orderEventPublisher.ORDER_GET_BY)
   private async getBy (message: string) {
     const { message: request } = JSON.parse(message);
     const { orderId } = JSON.parse(request);
 
     return await this.orderDtoLoaderById.load(orderId);
+  }
+
+  private async handleTransactionCompensationStart (messageStr: string): Promise<void> {
+    const message = JSON.parse(messageStr);
+    const { transactionId, failedStep } = message;
+
+    LoggerTracerInfrastructure.log(`Order service received compensation start for transaction ${transactionId}, failed step: ${failedStep}`);
   }
 
   private async handleUpdateOrderStatus (messageStr: string): Promise<void> {
@@ -110,38 +131,46 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
       throw new BadRequestError(failureReason);
     }
 
-    LoggerTracerInfrastructure.log(`Updating order status for order ${orderId} in transaction ${transactionId}`);
     await this.transactionManager.updateOrderStatus(orderId, transactionId, OrderStatus.COMPLETED);
-
-    await this.publish(
-      Subjects.TRANSACTION_STEP_COMPLETED, JSON.stringify({
-        transactionId,
-        processType: ProcessType.ORDER_APPROVAL,
-        stepName: Subjects.UPDATE_ORDER_STATUS,
-        status: ProcessStepStatus.COMPLETED,
-        payload: {
-          orderId,
-          orderStatus: OrderStatus.COMPLETED
-        }
-      })
-    );
+    this.handleUpdateOrderStatusPublisher(transactionId, orderId);
   }
 
   private async handleCompensateOrderStatus (messageStr: string): Promise<void> {
     const message = JSON.parse(messageStr);
     const { transactionId, orderId } = message;
 
-    LoggerTracerInfrastructure.log(`Compensating order ${orderId} status in transaction ${transactionId}`);
-
     await this.transactionManager.compensateOrderStatus(orderId, transactionId);
+    this.handleCompensateOrderStatusPublisher(transactionId);
+  }
 
-    await this.publish(
-      Subjects.TRANSACTION_COMPENSATION_COMPLETED, JSON.stringify({
-        transactionId,
-        processType: ProcessType.ORDER_APPROVAL,
-        stepName: Subjects.UPDATE_ORDER_STATUS,
-        status: ProcessStepStatus.COMPENSATED
-      })
-    );
+  private async handleTransactionCompleted (messageStr: string): Promise<void> {
+    const message = JSON.parse(messageStr);
+    const { transactionId, processType } = message;
+
+    LoggerTracerInfrastructure.log(`Invoice service notified of completed transaction: ${transactionId}, type: ${processType}`);
+  }
+
+  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_COMPLETED)
+  private handleUpdateOrderStatusPublisher (transactionId: string, orderId: string) {
+    return {
+      transactionId,
+      processType: ProcessType.ORDER_APPROVAL,
+      stepName: Subjects.UPDATE_ORDER_STATUS,
+      status: ProcessStepStatus.COMPLETED,
+      payload: {
+        orderId,
+        orderStatus: OrderStatus.COMPLETED
+      }
+    };
+  }
+
+  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_COMPENSATION_COMPLETED)
+  private handleCompensateOrderStatusPublisher (transactionId: string) {
+    return {
+      transactionId: transactionId,
+      processType: ProcessType.ORDER_APPROVAL,
+      stepName: Subjects.UPDATE_ORDER_STATUS,
+      status: ProcessStepStatus.COMPENSATED
+    };
   }
 }
