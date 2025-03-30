@@ -27,50 +27,71 @@
 # ✨ Features
 
 ## Order Management
+* **Order Creation and Lifecycle Management**
+  * Creates orders with initial PENDING status with user association
+  * Uses distributed transactions to ensure data consistency across services
+  * Supports order approval flow with automatic invoice generation
+  * Handles order cancellation with compensation actions
+  * Publishes events on state changes via Kafka
 
-* Order Retrieval
-* Fetches a paginated list of orders with filtering options.
-* Uses Redis caching to optimize data retrieval.
-* Creates a new order with PENDING status.
-* Associates the order with the current authenticated user.
-* Publishes an event to notify admins about the new order.
-* Future enhancement: Email notification to admins for approval.
-* Updates order status from PENDING to COMPLETED.
-* Generates an invoice and marks it as PAID.
-* Publishes an event upon approval.
-* Future enhancement: Email notification with an attached invoice.
-* Updates order status from PENDING to CANCELLED.
-* Generates an invoice and marks it as CANCELLED.
-* Publishes an event upon cancellation.
-* Future enhancement: Email notification with an attached invoice.
+* **Order Retrieval and Querying**
+  * Fetches paginated lists of orders with filtering and sorting options
+  * Optimizes data retrieval with Redis caching
+  * Implements DataLoader pattern for efficient batch loading
+  * Provides order details with associated user information
 
----
+## Invoice Management
+* **Invoice Generation and Processing**
+  * Automatically generates invoices as part of order approval process
+  * Maintains invoice status synchronized with order status
+  * Uses transaction coordinator to ensure data consistency
+  * Supports compensation mechanisms for failed transactions
+
+* **Invoice Retrieval and Querying**
+  * Provides APIs to retrieve invoice details with related order and user data
+  * Implements caching for performance optimization
+  * Supports filtering and pagination
 
 ## User Service
-* Fetches a paginated list of users with filtering options.
-* Retrieves users along with their assigned roles.
-* Uses Redis caching for performance optimization.
-* Fetches a user by ID.
-* Ensures the user exists before returning the data.
-* Validates that an email is unique before creating a user.
-* Assigns a default role if none is specified.
-* Generates a strong password.
-* Publishes an event upon user creation.
-* Future enhancement: Send an email with login credentials.
-* Updates user details, ensuring no duplicate email exists.
-* Publishes an event upon user update.
-* Verifies current password before allowing an update.
-* Ensures password confirmation matches.
-* Encrypts the new password before saving.
-* Publishes an event upon password update.
+* **User Management**
+  * Manages user accounts and profile information
+  * Handles user authentication and authorization
+  * Associates users with roles for permission management
+  * Validates data integrity (unique email, password requirements)
 
----
+* **Role-Based Access Control**
+  * Manages user permissions through role assignments
+  * Secures endpoints based on user roles
+  * Provides role management capabilities
+
+## Distributed Transaction Management
+* **Saga Pattern Implementation**
+  * Coordinates multi-step transactions across microservices
+  * Implements compensation mechanisms for failed transactions
+  * Maintains transaction state in Redis for reliability
+  * Provides transaction monitoring and status tracking
+
+* **Event-Driven Communication**
+  * Uses Kafka for reliable event publishing and consumption
+  * Implements event-based service communication
+  * Ensures loose coupling between services
+
+## Resilience and Performance
+* **Caching Strategy**
+  * Implements Redis caching for frequently accessed data
+  * Uses cache invalidation strategies to maintain data consistency
+  * Optimizes query performance with selective caching
+
+* **Error Handling and Recovery**
+  * Implements retry mechanisms for transient failures
+  * Provides detailed error reporting and logging
+  * Ensures graceful degradation during partial system failures
 
 ## Future Enhancements
-
-* Implement email notifications for order approvals, cancellations, and user account creation.
-* Enhance Redis caching to improve query performance further.
-* Introduce logging and monitoring to track system performance and user interactions.
+* Email notifications for order approvals, cancellations, and user account actions
+* Enhanced monitoring and alerting capabilities
+* Performance dashboard for real-time system metrics
+* Enhanced security features (2FA, OAuth integration)
 
 ---
 
@@ -144,48 +165,91 @@
 ##### The following design patterns have been applied to the system to ensure modularity, flexibility, and scalability:
 
 ## 1. Singleton Pattern
-
-* Used for managing database connections and Redis cache to ensure only one instance is created.
+* Used for managing database connections and Redis cache instances
+* Ensures single instances of service connections (Kafka, Redis, PostgreSQL)
+* Implemented in infrastructure services to prevent duplicate resources
 
 ## 2. Factory Pattern
-
-* Encapsulates object creation, allowing for dynamic service instantiation.
+* Encapsulates object creation in the Container system
+* Enables dynamic service instantiation based on configuration
+* Used for creating repository instances and data access objects
 
 ## 3. Dependency Injection (DI)
-
-* Uses TypeDI to inject dependencies, reducing coupling.
+* Uses TypeDI to inject dependencies across services
+* Reduces coupling between components
+* Simplifies testing through mock injection
+* Implemented throughout the codebase to manage service dependencies
 
 ## 4. Observer Pattern
-
-* Ensures real-time updates by notifying services of state changes (e.g., via Kafka events).
+* Implemented via Kafka event system for real-time updates
+* Services subscribe to relevant events and react accordingly
+* Used for propagating changes across microservices
 
 ## 5. Strategy Pattern
-
-* Allows dynamic switching between querying strategies without modifying core logic.
+* Allows dynamic switching between querying strategies
+* Used in data access layer to support different query patterns
+* Supports flexible filtering and sorting mechanisms
 
 ## 6. Command Pattern
-
-* Encapsulates complex workflows like submitting jobs to Redis queues.
+* Encapsulates operations as objects
+* Implements transaction steps as atomic commands
+* Used in distributed transaction management
 
 ## 7. Decorator Pattern
-
-* Adds features like caching and event publishing without modifying core functionality.
+* Adds cross-cutting concerns without modifying core functionality
+* Used for Redis caching (@RedisDecorator)
+* Implements event publishing decorators for Kafka messages
 
 ## 8. Proxy Pattern
-
-* Implements caching and rate-limiting to optimize API calls.
+* Implements service proxies for API gateway routing
+* Provides caching and rate-limiting for API calls
+* Controls access to underlying services
 
 ## 9. Repository Pattern
-
-* Abstracts database interactions, ensuring a clean separation from business logic.
+* Abstracts database access behind clean interfaces
+* Separates domain models from data access logic
+* Used consistently across all services
 
 ## 10. Builder Pattern
-
-* Constructs complex objects like invoices and user profiles in a systematic way.
+* Constructs complex objects with clear, step-by-step processes
+* Used for building invoice and order objects
+* Simplifies object creation with many dependencies
 
 ## 11. Publisher-Subscriber Pattern
+* Implemented via Kafka for asynchronous messaging
+* Enables event-driven architecture
+* Decouples services through message passing
 
-* Uses Kafka for event-driven messaging, allowing services to communicate asynchronously.
+## 12. Circuit Breaker Pattern
+* Prevents cascading failures across microservices
+* Implements retry logic with exponential backoff
+* Used in service communication to handle transient failures
+
+## 13. Adapter Pattern
+* Creates compatible interfaces between different components
+* Used to integrate external services and libraries
+* Provides consistent abstractions over infrastructure services
+
+## 14. Saga Pattern
+* Coordinates distributed transactions across services
+* Implements compensating transactions for failure scenarios
+* Maintains transaction state and handles recovery
+* Core pattern for ensuring data consistency in the microservice architecture
+
+## 15. Façade Pattern
+* Provides simplified interfaces to complex subsystems
+* Used in API layer to simplify client interactions
+* Hides implementation details of underlying services
+
+## 16. Service Layer Pattern
+* Defines application's boundary and API set for client access
+* Encapsulates business logic implementation details
+* Coordinates responses to client operations with domain operations
+
+## 17. Specification Pattern
+* Used for complex querying with composable filter criteria
+* Supports advanced search and filtering operations
+* Implemented in repository query methods
 
 ---
 
@@ -225,14 +289,44 @@
 
 # 💻 Technologies
 
-* Node.js & ExpressJS – Backend framework.
-* TypeScript – Statically typed JavaScript.
-* PostgreSQL – Relational database with ORM.
-* Redis – Caching and message queues.
-* Kafka – Event-driven microservices communication.
-* TypeDI – Dependency Injection.
-* Docker & Kubernetes – Containerization & orchestration.
-* DataLoader – Optimized database queries.
+## Backend Core
+* **Node.js** - JavaScript runtime environment
+* **TypeScript** - Typed superset of JavaScript for better development experience
+* **Express.js** - Web framework for building APIs
+* **routing-controllers** - Controller-based routing framework
+
+## Database & Storage
+* **PostgreSQL** - Relational database for persistent storage
+* **TypeORM** - Object-Relational Mapping for database interactions
+* **Redis** - In-memory data store for caching and distributed state
+
+## Messaging & Event-Driven Architecture
+* **Apache Kafka** - Distributed event streaming platform
+* **KafkaJS** - Kafka client library for Node.js
+
+## Dependency Management
+* **TypeDI** - Dependency injection container for TypeScript
+* **DataLoader** - Batching and caching for database queries
+
+## Containerization & Deployment
+* **Docker** - Containerization platform
+* **Docker Compose** - Multi-container Docker applications
+* **Nginx** - Load balancing and API gateway routing in production
+
+## Authentication & Security
+* **Passport.js** - Authentication middleware
+* **JSON Web Tokens (JWT)** - Secure information transmission
+* **bcrypt** - Password hashing
+
+## Testing & Quality Assurance
+* **Jest** - Testing framework
+* **eslint** - Code linting for quality control
+* **class-validator** - Runtime type checking and validation
+
+## Resilience & Performance
+* **Circuit Breakers** - Preventing cascading failures
+* **Connection Pooling** - Optimizing database connections
+* **Rate Limiting** - Protecting services from overload
 
 ---
 
@@ -318,73 +412,221 @@ yarn mdn
 # 📂 Project Structure
 
 ```javascript
-/api-gateway    # Manages API routing.
-/common         # Shared utilities and configs.
-/deployment     # Deployment environment configs.
-├── /dev        # Development environment setup.
-├── /prod       # Production environment setup.
-/services       # Individual service modules
-├── /auth       # Handles authentication logic.
-├── /invoices   # Manages invoice operations.
-├── /orders     # Handles order operations.
-/package.json   # Defines workspaces for modular structure.
-└── README.md   # Project documentation.
+/api-gateway             # API gateway for routing requests to microservices
+/common                  # Shared utilities, configs, and common code
+  ├── /src
+     ├── /application    # Application bootstrap and IoC helpers
+     ├── /core           # Core configs, middlewares, and types
+     ├── /domain         # Domain enums, interfaces, and types
+     ├── /infrastructure # Infrastructure implementations (DB, Kafka, Redis)
+/deployment              # Deployment configurations
+  ├── /dev               # Development environment setup
+  ├── /prod              # Production environment configs with Nginx
+/services                # Individual microservices
+  ├── /auth-service      # Authentication and user management
+  ├── /invoice-service   # Invoice operations and management
+  ├── /order-service     # Order creation and processing
+/package.json            # Workspace definitions and scripts
+/README.md               # Project documentation
+```
+
+Each service follows a similar structure:
+
+```javascript
+/services/<service-name>
+  ├── /src
+     ├── /api            # REST API controllers and routes
+     ├── /application    # Service-specific application logic
+        ├── /helpers     # Helper functions and utilities
+        ├── /kafka       # Kafka event handlers and subscribers
+        ├── /services    # Core business services
+        ├── /transactions # Distributed transaction managers
+     ├── /domain         # Domain entities and repositories
+        ├── /entities    # TypeORM entities
+        ├── /repositories # Repository interfaces and implementations
+     ├── /test           # Unit and integration tests
+  ├── package.json       # Service-specific dependencies
 ```
 
 ---
 
-# 📚📄📝💻 API Documentation
+# 📚 API Documentation
 
-#### API documentation is available at:
+## Documentation Access
+* API documentation is available through Swagger UI when running the application:
+  * Auth Service: `http://localhost:4001/api-docs`
+  * Invoice Service: `http://localhost:4002/api-docs`
+  * Order Service: `http://localhost:4003/api-docs`
 
-#### A Postman collection file is also included for testing API use cases:
+## Testing with Postman
+* A Postman collection file is provided for testing the API endpoints:
+  ```
+  /postman/invoice_hub_microservices.postman_collection.json
+  ```
+* Import this collection into Postman to easily test all available endpoints
+* The collection includes environment variables for easy configuration
 
-```javascript
-/postman/invoice_hub_microservices.postman_collection.json
-```
+## API Structure
+* All APIs follow a consistent RESTful structure
+* Endpoints are versioned (e.g., `/api/v1/orders`)
+* Standard HTTP methods are used (GET, POST, PATCH, DELETE)
+* Responses follow a consistent format with status codes and meaningful messages
 
-# 🚀▶️💻 Running the Application
+# 🚀 Running the Application
 
-##### To start the application:
+## Development Mode
 
-```javascript
-yarn start
-```
+To start the application in development mode:
 
-# 🧪✅🔍 Running Tests
+1. First, start the infrastructure services using Docker:
+   ```bash
+   cd deployment/dev
+   bash start.sh
+   ```
 
-##### To run tests, execute the following command:
+2. Start each microservice in development mode (in separate terminals):
+   ```bash
+   # From the project root
+   cd services/auth-service
+   yarn start
+   
+   cd services/invoice-service
+   yarn start
+   
+   cd services/order-service
+   yarn start
+   
+   cd api-gateway
+   yarn start
+   ```
 
-```javascript
+3. The services will be available at:
+   * API Gateway: http://localhost:3000
+   * Auth Service: http://localhost:4001
+   * Invoice Service: http://localhost:4002
+   * Order Service: http://localhost:4003
+
+## Production Mode
+
+For production deployment:
+
+1. Build all services:
+   ```bash
+   yarn build
+   ```
+
+2. Start the production stack:
+   ```bash
+   cd deployment/prod
+   docker-compose up -d
+   ```
+
+3. Access the application at: http://localhost
+
+# 🧪 Testing
+
+## Running Tests
+
+To run unit tests for all services:
+```bash
 yarn test
 ```
 
----
+To run tests for a specific service:
+```bash
+cd services/auth-service
+yarn test
+
+cd services/invoice-service
+yarn test
+
+cd services/order-service
+yarn test
+```
 
 # 🛠 Usage
 
-## Example Operations
+## Authentication
 
-### 1. Create an Order
+### Login to get JWT token
+```bash
+curl -X POST {{URL}}/auth/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "password": "Password123"
+  }'
+```
 
-#### Endpoint: POST {{URL}}/orders/api/v1/orders
-
-```javascript
+### Response:
+```json
 {
-    "totalAmount": 180.20
+  "result": "SUCCESS",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 3600
 }
 ```
 
-### 2. Approve the Order
+## Order Management
 
-```javascript
-Endpoint: PATCH {{URL}}/orders/api/v1/orders/{{id}}/approve
+### Create a new order
+```bash
+curl -X POST {{URL}}/orders/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "totalAmount": 180.20,
+    "description": "Monthly office supplies"
+  }'
 ```
 
-### 3. Cancel the Order
+### Get list of orders
+```bash
+curl -X GET {{URL}}/orders/api/v1/orders?page=1&limit=10 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
 
-```javascript
-Endpoint: PATCH {{URL}}/orders/api/v1/orders/{{id}}/cancel
+### Get order details
+```bash
+curl -X GET {{URL}}/orders/api/v1/orders/{{id}} \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Invoice Management
+
+### Get list of invoices
+```bash
+curl -X GET {{URL}}/invoices/api/v1/invoices?page=1&limit=10 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Get invoice details
+```bash
+curl -X GET {{URL}}/invoices/api/v1/invoices/{{id}} \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## User Management
+
+### Get list of users
+```bash
+curl -X GET {{URL}}/auth/api/v1/users?page=1&limit=10 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Get user details
+```bash
+curl -X GET {{URL}}/auth/api/v1/users/{{id}} \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Working with Filters
+
+You can add filters to list endpoints:
+
+```bash
+curl -X GET {{URL}}/orders/api/v1/orders?page=1&limit=10&filters[status]=PENDING \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ---
