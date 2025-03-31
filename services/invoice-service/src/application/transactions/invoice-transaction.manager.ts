@@ -1,5 +1,5 @@
 import { Container } from 'typedi';
-import { TransactionCoordinatorInfrastructure, InvoiceStatus, GroupIds, LoggerTracerInfrastructure, getErrorMessage } from '@invoice-hub/common';
+import { TransactionCoordinatorInfrastructure, InvoiceStatus, GroupIds } from '@invoice-hub/common';
 
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 import { Invoice } from 'domain/entities/invoice.entity';
@@ -7,7 +7,6 @@ import { Invoice } from 'domain/entities/invoice.entity';
 export interface IInvoiceTransactionManager {
   initialize(): Promise<void>;
   generateInvoiceInTransaction(orderId: string, userId: string, totalAmount: number): Promise<Invoice>;
-  handleCompensation(transactionId: string): Promise<void>;
 }
 
 export class InvoiceTransactionManager implements IInvoiceTransactionManager {
@@ -51,30 +50,5 @@ export class InvoiceTransactionManager implements IInvoiceTransactionManager {
     const singleInvoice = Array.isArray(savedInvoice) ? savedInvoice[0] : savedInvoice;
 
     return singleInvoice;
-  }
-
-  async handleCompensation (transactionId: string): Promise<void> {
-    try {
-      const transaction = await this.transactionCoordinator.getTransactionState(transactionId);
-      if (!transaction) {
-        LoggerTracerInfrastructure.log(`No transaction found for compensation: ${transactionId}`);
-        return;
-      }
-
-      const invoice = await this.invoiceRepository.findOne({ where: { orderId: String(transaction.payload?.orderId) } });
-      if (!invoice) {
-        LoggerTracerInfrastructure.log(`No invoice found for transaction: ${transactionId}`);
-        return;
-      }
-
-      if (invoice.status === InvoiceStatus.PENDING || invoice.status === InvoiceStatus.CANCELLED) {
-        await this.invoiceRepository.update(invoice.id, { status: InvoiceStatus.CANCELLED, updatedAt: new Date() });
-      }
-
-      LoggerTracerInfrastructure.log(`Invoice compensation completed for transaction: ${transactionId}`);
-    } catch (error) {
-      LoggerTracerInfrastructure.log(`Error during invoice compensation: ${getErrorMessage(error)}`);
-      throw error;
-    }
   }
 }

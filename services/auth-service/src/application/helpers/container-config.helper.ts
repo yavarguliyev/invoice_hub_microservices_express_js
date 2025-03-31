@@ -24,6 +24,7 @@ import { Role } from 'domain/entities/role.entity';
 import { User } from 'domain/entities/user.entity';
 import { RoleRepository } from 'domain/repositories/role.repository';
 import { UserRepository } from 'domain/repositories/user.repository';
+import { UserKafkaSubscriber } from 'application/kafka/user-kafka.subscriber';
 
 class AppConfig {
   static entities = [Role, User];
@@ -38,7 +39,8 @@ class AppConfig {
     { containerKey: ContainerKeys.USER_DATA_LOADER, entity: User }
   ];
 
-  private static services: RegisterServiceOptions<AuthService | RoleService | UserService>[] = [
+  private static services: RegisterServiceOptions<UserKafkaSubscriber | AuthService | RoleService | UserService>[] = [
+    { id: ContainerItems.IUserKafkaSubscriber, service: UserKafkaSubscriber } as RegisterServiceOptions<UserKafkaSubscriber>,
     { id: ContainerItems.IAuthService, service: AuthService } as RegisterServiceOptions<AuthService>,
     { id: ContainerItems.IRoleService, service: RoleService } as RegisterServiceOptions<RoleService>,
     { id: ContainerItems.IUserService, service: UserService } as RegisterServiceOptions<UserService>
@@ -59,7 +61,7 @@ class AppConfig {
     dataLoaders: AppConfig.dataLoaders,
     repositories: AppConfig.repositories,
     services: AppConfig.services,
-    serviceKeys: [ContainerItems.IUserService]
+    serviceKeys: [ContainerItems.IUserKafkaSubscriber, ContainerItems.IUserService]
   };
 
   private static serverConfig = { clientId: ClientIds.AUTH_SERVICE, controllers: AppConfig.controllers };

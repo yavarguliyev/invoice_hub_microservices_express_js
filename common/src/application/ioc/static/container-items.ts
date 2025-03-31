@@ -8,5 +8,6 @@ export const ContainerItems = {
   IOrderKafkaSubscriber: 'IOrderKafkaSubscriber',
   IOrderTransactionManager: 'IOrderTransactionManager',
   IRoleService: 'IRoleService',
-  IUserService: 'IUserService'
+  IUserService: 'IUserService',
+  IUserKafkaSubscriber: 'IUserKafkaSubscriber'
 };

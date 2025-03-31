@@ -95,7 +95,6 @@ export class TransactionCoordinatorInfrastructure {
     const isTransactionInProgress = transaction?.status === DistributedTransactionStatus.IN_PROGRESS;
 
     if (isTransactionMissing || (!isTransactionStarted && !isTransactionInProgress)) {
-      LoggerTracerInfrastructure.log(`Transaction ${transactionId} not in valid state for progression: ${transaction?.status || 'unknown'}`);
       return;
     }
 
@@ -119,8 +118,6 @@ export class TransactionCoordinatorInfrastructure {
       stepName: currentStep.name
     });
 
-    LoggerTracerInfrastructure.log(`Publishing message to topic: ${topicName}, message: ${message}`);
-
     await this.kafka.publish({
       topicName,
       message
@@ -134,7 +131,6 @@ export class TransactionCoordinatorInfrastructure {
     const transaction = await this.getTransactionState(event.transactionId);
 
     if (!transaction) {
-      LoggerTracerInfrastructure.log(`No transaction found for step completion: ${event.transactionId}`);
       return;
     }
 
@@ -142,7 +138,6 @@ export class TransactionCoordinatorInfrastructure {
     LoggerTracerInfrastructure.log(`Processing step completion for transaction ${event.transactionId}: current step=${currentStep.name}, received completion for step=${event.stepName}`);
 
     if (currentStep.name !== event.stepName) {
-      LoggerTracerInfrastructure.log(`Step name mismatch in transaction ${event.transactionId}: expected=${currentStep.name}, received=${event.stepName}`);
       return;
     }
 
@@ -169,6 +164,7 @@ export class TransactionCoordinatorInfrastructure {
     currentStep.error = event.error;
 
     await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.FAILED, error: event.error });
+    await this.sendUserNotification(transaction.transactionId, event.error || 'Transaction step failed', transaction.processType);
     await this.startCompensation(event.transactionId);
   }
 
@@ -215,6 +211,7 @@ export class TransactionCoordinatorInfrastructure {
     }
 
     await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.TIMED_OUT, error: 'Transaction timed out' });
+    await this.sendUserNotification(transactionId, 'Transaction timed out', transaction.processType);
     await this.startCompensation(transactionId);
   }
 
@@ -444,5 +441,42 @@ export class TransactionCoordinatorInfrastructure {
 
   private async getTransactionKeys (): Promise<string[]> {
     return this.redis.getKeysByPattern({ clientId: this.clientId, pattern: `${this.transactionPrefix}*` });
+  }
+
+  private async sendUserNotification (transactionId: string, errorMessage: string, processType: ProcessType): Promise<void> {
+    try {
+      const transaction = await this.getTransactionState(transactionId);
+      if (!transaction) {
+        return;
+      }
+
+      const { payload } = transaction;
+      let notification = {
+        transactionId,
+        userId: transaction.initiatedBy,
+        processType,
+        status: transaction.status,
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+        details: {}
+      };
+
+      if (processType === ProcessType.ORDER_APPROVAL) {
+        notification.details = {
+          orderId: payload.orderId,
+          totalAmount: payload.totalAmount,
+          failureReason: payload.failureReason || errorMessage
+        };
+      }
+
+      await this.kafka.publish({
+        topicName: Subjects.TRANSACTION_USER_NOTIFICATION,
+        message: JSON.stringify(notification)
+      });
+
+      LoggerTracerInfrastructure.log(`Successfully sent user notification for transaction ${transactionId}`);
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error sending user notification: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }

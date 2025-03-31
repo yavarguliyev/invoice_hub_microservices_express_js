@@ -32,35 +32,6 @@ export class KafkaConsumerInfrastructure {
     }
 
     await this.consumer.subscribe({ topic: topicName, fromBeginning: false });
-    LoggerTracerInfrastructure.log(`Subscribed to topic: ${topicName}`);
-
-    if (!this.isConsumerRunning) {
-      await this.startConsumer();
-    }
-  }
-
-  async batchSubscribe (subscriptions: KafkaSubscriberOptions[]): Promise<void> {
-    if (subscriptions.length === 0) {
-      return;
-    }
-
-    if (this.isConsumerRunning) {
-      await this.stopConsumer();
-    }
-
-    for (const { topicName, handler } of subscriptions) {
-      if (this.subscribedTopics.has(topicName)) {
-        this.topicHandlers.set(topicName, handler);
-        continue;
-      }
-
-      this.topicHandlers.set(topicName, handler);
-      this.subscribedTopics.add(topicName);
-
-      await this.consumer.subscribe({ topic: topicName, fromBeginning: false });
-      LoggerTracerInfrastructure.log(`Subscribed to topic: ${topicName}`);
-    }
-
     if (!this.isConsumerRunning) {
       await this.startConsumer();
     }
@@ -81,7 +52,6 @@ export class KafkaConsumerInfrastructure {
     if (this.isConsumerRunning) {
       try {
         await this.consumer.stop();
-        LoggerTracerInfrastructure.log('Stopped');
       } catch (error) {
         LoggerTracerInfrastructure.log(`Error stopping consumer: ${getErrorMessage(error)}`, 'error');
       }
@@ -92,56 +62,31 @@ export class KafkaConsumerInfrastructure {
 
   private async startConsumer(): Promise<void> {
     try {
-      LoggerTracerInfrastructure.log('Starting');
       this.isConsumerRunning = true;
 
       await this.consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
           try {
             if (!message.value) {
-              LoggerTracerInfrastructure.log(`Received empty message on topic: ${topic}`);
               return;
             }
 
             const handler = this.topicHandlers.get(topic);
             if (!handler) {
-              LoggerTracerInfrastructure.log(`No handler found for topic: ${topic}`);
               return;
             }
 
             const messageValue = message.value.toString();
-            LoggerTracerInfrastructure.log(`Received message on topic: ${topic}, partition: ${partition}`);
-
             await handler(messageValue);
-            LoggerTracerInfrastructure.log(`Successfully processed message on topic: ${topic}`);
           } catch (error) {
             LoggerTracerInfrastructure.log(`Error processing message from ${topic}: ${getErrorMessage(error)}`, 'error');
           }
         }
       });
-
-      LoggerTracerInfrastructure.log(`Consumer started for group: ${this.groupId}, subscribed topics: ${Array.from(this.subscribedTopics).join(', ')}`);
     } catch (error) {
       this.isConsumerRunning = false;
       LoggerTracerInfrastructure.log(`Error starting consumer: ${getErrorMessage(error)}`, 'error');
       throw error;
-    }
-  }
-
-  async subscribeAll (subscriptions: Array<{topicName: string, handler: (message: string) => Promise<void>}>): Promise<void> {
-    if (this.isConsumerRunning) {
-      await this.stopConsumer();
-    }
-
-    for (const { topicName, handler } of subscriptions) {
-      this.topicHandlers.set(topicName, handler);
-      this.subscribedTopics.add(topicName);
-      await this.consumer.subscribe({ topic: topicName, fromBeginning: false });
-      LoggerTracerInfrastructure.log(`Subscribed to topic: ${topicName}`);
-    }
-
-    if (!this.isConsumerRunning) {
-      await this.startConsumer();
     }
   }
 }

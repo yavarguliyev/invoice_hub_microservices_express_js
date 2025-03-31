@@ -30,7 +30,8 @@ const invoiceEventPublisher: Record<string, EventDecoratorOptions> = {
 const transactionEventPublisher: Record<string, EventDecoratorOptions> = {
   TRANSACTION_STEP_COMPLETED: { topicName: Subjects.TRANSACTION_STEP_COMPLETED, prepareMessage: (data) => data },
   TRANSACTION_COMPENSATION_COMPLETED: { topicName: Subjects.TRANSACTION_COMPENSATION_COMPLETED, prepareMessage: (data) => data },
-  TRANSACTION_STEP_FAILED: { topicName: Subjects.TRANSACTION_STEP_FAILED, prepareMessage: (data) => data }
+  TRANSACTION_STEP_FAILED: { topicName: Subjects.TRANSACTION_STEP_FAILED, prepareMessage: (data) => data },
+  TRANSACTION_USER_NOTIFICATION: { topicName: Subjects.TRANSACTION_USER_NOTIFICATION, prepareMessage: (data) => data }
 };
 
 export {

@@ -1,13 +1,15 @@
 import { Container } from 'typedi';
 import {
   TransactionCoordinatorInfrastructure,
-  ClientIds,
   ProcessType,
   Subjects,
-  LoggerTracerInfrastructure,
+  ClientIds,
   OrderStatus,
   GroupIds,
-  getErrorMessage
+  DistributedTransactionStatus,
+  LoggerTracerInfrastructure,
+  EventPublisherDecorator,
+  transactionEventPublisher
 } from '@invoice-hub/common';
 
 import { OrderRepository } from 'domain/repositories/order.repository';
@@ -18,7 +20,6 @@ export interface IOrderTransactionManager {
   startOrderTransaction(order: Order): Promise<{ transactionId: string }>;
   startFailedOrderTransaction (order: Order, reason: string, finalStatus: OrderStatus): Promise<string>;
   updateOrderStatus(orderId: string, transactionId: string, targetStatus: OrderStatus): Promise<void>;
-  handleCompensation(transactionId: string): Promise<void>;
 }
 
 export class OrderTransactionManager implements IOrderTransactionManager {
@@ -77,6 +78,7 @@ export class OrderTransactionManager implements IOrderTransactionManager {
     });
 
     await this.orderRepository.save({ ...order, status: finalStatus });
+    this.handleTransactionUserNotification(transactionId, order, reason);
 
     return transactionId;
   }
@@ -88,28 +90,21 @@ export class OrderTransactionManager implements IOrderTransactionManager {
     LoggerTracerInfrastructure.log(`Updated order ${orderId} status to ${targetStatus} in transaction ${transactionId}`);
   }
 
-  async handleCompensation (transactionId: string): Promise<void> {
-    try {
-      const transaction = await this.transactionCoordinator.getTransactionState(transactionId);
-      if (!transaction) {
-        LoggerTracerInfrastructure.log(`No transaction found for compensation: ${transactionId}`);
-        return;
+  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_USER_NOTIFICATION)
+  private handleTransactionUserNotification (transactionId: string, order: Order, failureReason: string) {
+    return {
+      transactionId,
+      userId: order.userId,
+      processType: ProcessType.ORDER_APPROVAL,
+      status: DistributedTransactionStatus.FAILED,
+      error: failureReason,
+      timestamp: new Date().toISOString(),
+      details: {
+        orderId: order.id,
+        totalAmount: order.totalAmount,
+        failureReason,
+        finalStatus: order.status
       }
-
-      const order = await this.orderRepository.findOne({ where: { id: String(transaction.payload?.orderId) } });
-      if (!order) {
-        LoggerTracerInfrastructure.log(`No order found for transaction: ${transactionId}`);
-        return;
-      }
-
-      if (order.status === OrderStatus.COMPLETED) {
-        await this.orderRepository.update(order.id, { status: OrderStatus.PENDING, updatedAt: new Date() });
-      }
-
-      LoggerTracerInfrastructure.log(`Order compensation completed for transaction: ${transactionId}`);
-    } catch (error) {
-      LoggerTracerInfrastructure.log(`Error during order compensation: ${getErrorMessage(error)}`);
-      throw error;
-    }
+    };
   }
 }

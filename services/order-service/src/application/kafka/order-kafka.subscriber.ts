@@ -4,7 +4,6 @@ import {
   KafkaInfrastructure,
   GroupIds,
   Subjects,
-  LoggerTracerInfrastructure,
   EventPublisherDecorator,
   ContainerHelper,
   ContainerItems,
@@ -33,6 +32,7 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
   private _kafka?: KafkaInfrastructure;
   private _transactionManager?: IOrderTransactionManager;
   private _orderDtoLoaderById?: DataLoader<string, OrderDto>;
+  private isInitialized = false;
 
   private get kafka () {
     if (!this._kafka) {
@@ -61,23 +61,26 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
   // #endregion
 
   async initialize (): Promise<void> {
-    const serviceSubscriptions = [
-      { topicName: Subjects.FETCH_ORDER_REQUEST, handler: this.handleFetchOrderRequest }
-    ];
-
-    const transactionSubscriptions = [
-      { topicName: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS, handler: this.handleUpdateOrderStatus },
-      { topicName: Subjects.TRANSACTION_COMPENSATION_START, handler: this.handleTransactionCompensationStart },
-      { topicName: Subjects.TRANSACTION_COMPLETED, handler: this.handleTransactionCompleted }
-    ];
-
-    for (const { topicName, handler } of serviceSubscriptions) {
-      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.ORDER_SERVICE_APP_GROUP } });
+    if (this.isInitialized) {
+      return;
     }
 
-    for (const { topicName, handler } of transactionSubscriptions) {
-      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.ORDER_SERVICE_TRANSACTION_GROUP } });
+    const subscriptions = [
+      { topic: Subjects.FETCH_ORDER_REQUEST, handler: this.handleFetchOrderRequest },
+      { topic: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS, handler: this.handleUpdateOrderStatus }
+    ];
+
+    for (const { topic, handler } of subscriptions) {
+      await this.kafka.subscribe({
+        topicName: topic,
+        handler: handler.bind(this),
+        options: {
+          groupId: this.isTransactionTopic(topic) ? GroupIds.ORDER_SERVICE_TRANSACTION_GROUP : GroupIds.ORDER_SERVICE_APP_GROUP
+        }
+      });
     }
+
+    this.isInitialized = true;
   }
 
   async requestUserData (options: KafkaRequestOptions[]): Promise<string[]> {
@@ -96,17 +99,6 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     return await this.orderDtoLoaderById.load(orderId);
   }
 
-  private async handleTransactionCompensationStart (messageStr: string): Promise<void> {
-    const message = JSON.parse(messageStr);
-    const { transactionId, failedStep } = message;
-
-    LoggerTracerInfrastructure.log(`Order service received compensation start for transaction ${transactionId}, failed step: ${failedStep}`);
-
-    if (failedStep === Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS) {
-      await this.transactionManager.handleCompensation(transactionId);
-    }
-  }
-
   private async handleUpdateOrderStatus (messageStr: string): Promise<void> {
     const message = JSON.parse(messageStr);
     const { transactionId, orderId, failureReason, finalStatus } = message;
@@ -123,11 +115,8 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     this.handleUpdateOrderStatusPublisher(transactionId, orderId);
   }
 
-  private async handleTransactionCompleted (messageStr: string): Promise<void> {
-    const message = JSON.parse(messageStr);
-    const { transactionId, processType } = message;
-
-    LoggerTracerInfrastructure.log(`Order service notified of completed transaction: ${transactionId}, type: ${processType}`);
+  private isTransactionTopic (topic: string): boolean {
+    return topic.includes('transaction');
   }
 
   @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_COMPLETED)

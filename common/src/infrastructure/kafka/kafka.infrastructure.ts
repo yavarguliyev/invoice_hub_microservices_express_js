@@ -85,6 +85,19 @@ export class KafkaInfrastructure {
     return Promise.all(promises);
   }
 
+  async disconnect () {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    this.responseHandlers.clear();
+    this.consumerInstances.clear();
+
+    await Promise.all([this.producer?.disconnect(), this.consumer?.disconnect(), this.admin?.disconnect()]);
+    this.isInitialized = false;
+    LoggerTracerInfrastructure.log('Kafka fully disconnected.');
+  }
+
   private async processRequest (args: KafkaRequestOptions) {
     const { requestTopic, message, responseTopic, groupId, timeoutMs = 10000 } = args;
 
@@ -127,74 +140,5 @@ export class KafkaInfrastructure {
     if (handler) {
       handler(response);
     }
-  }
-
-  async disconnect () {
-    if (!this.isInitialized) {
-      return;
-    }
-
-    this.responseHandlers.clear();
-    this.consumerInstances.clear();
-
-    await Promise.all([this.producer?.disconnect(), this.consumer?.disconnect(), this.admin?.disconnect()]);
-    this.isInitialized = false;
-    LoggerTracerInfrastructure.log('Kafka fully disconnected.');
-  }
-
-  async createTopics (topicNames: string[]): Promise<void> {
-    if (!this.isInitialized || !this.producer) {
-      throw new Error('Kafka is not initialized');
-    }
-
-    for (const topicName of topicNames) {
-      await this.producer.createTopic({ topicName });
-    }
-  }
-
-  async batchSubscribe (subscriptions: KafkaSubscriberOptions[]): Promise<void> {
-    if (!this.isInitialized) {
-      throw new Error('Kafka is not initialized');
-    }
-
-    try {
-      const subscriptionsByGroup = new Map<string, KafkaSubscriberOptions[]>();
-      for (const subscription of subscriptions) {
-        const groupId = subscription.options?.groupId ?? GroupIds.BASE_GROUP;
-        if (!subscriptionsByGroup.has(groupId)) {
-          subscriptionsByGroup.set(groupId, []);
-        }
-
-        subscriptionsByGroup.get(groupId)!.push(subscription);
-      }
-
-      for (const [groupId, groupSubscriptions] of subscriptionsByGroup.entries()) {
-        if (!this.consumerInstances.has(groupId)) {
-          this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
-          await this.consumerInstances.get(groupId)!.connect();
-        }
-
-        const consumerInstance = this.consumerInstances.get(groupId)!;
-        await consumerInstance.batchSubscribe(groupSubscriptions);
-      }
-    } catch (error) {
-      LoggerTracerInfrastructure.log(`Error batch subscribing to topics: ${getErrorMessage(error)}`, 'error');
-      throw error;
-    }
-  }
-
-  async subscribeAll (groupId: GroupIds, subscriptions: Array<{topicName: string, handler: (message: string) => Promise<void>}>): Promise<void> {
-    if (!this.isInitialized) {
-      throw new Error('Kafka is not initialized');
-    }
-
-    if (!this.consumerInstances.has(groupId)) {
-      this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
-      await this.consumerInstances.get(groupId)!.connect();
-    }
-
-    const consumer = this.consumerInstances.get(groupId)!;
-
-    await consumer.subscribeAll(subscriptions);
   }
 }

@@ -43,9 +43,7 @@ export class LoggerTracerInfrastructure {
       const groupId = entry.log.groupId;
       const logMessage = entry.log.message;
 
-      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}, Topics(${topicCount}): ${topics.join(', ')}`, levelMapping[level]);
-    } else if (entry.log?.message) {
-      LoggerTracerInfrastructure.log(entry.log.message, levelMapping[level]);
+      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}, Topics(${topicCount})`, levelMapping[level]);
     }
   }
 }

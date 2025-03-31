@@ -17,6 +17,7 @@ export enum Subjects {
   TRANSACTION_COMPENSATION_COMPLETED = 'transaction_compensation_completed',
   TRANSACTION_COMPLETED = 'transaction_completed',
   TRANSACTION_TIMEOUT = 'transaction_timeout',
+  TRANSACTION_USER_NOTIFICATION = 'transaction_user_notification',
 
   ORDER_APPROVAL_STEP_INVOICE_GENERATE = 'order_approval_step_invoice_generate',
   ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS = 'order_approval_step_update_order_status'

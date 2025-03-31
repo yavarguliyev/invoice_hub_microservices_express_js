@@ -1,5 +1,4 @@
 import { Container } from 'typedi';
-import DataLoader from 'dataloader';
 import {
   GetQueryResultsArgs,
   ResponseResults,
@@ -9,17 +8,12 @@ import {
   RoleDto,
   RedisDecorator,
   redisCacheConfig,
-  KafkaInfrastructure,
-  ContainerKeys,
-  Subjects,
-  GroupIds,
-  EventPublisherDecorator,
-  userEventPublisher,
-  DataLoaderInfrastructure
+  ContainerHelper,
+  ContainerItems
 } from '@invoice-hub/common';
 
 import { UserRepository } from 'domain/repositories/user.repository';
-import { User } from 'domain/entities/user.entity';
+import { IUserKafkaSubscriber } from 'application/kafka/user-kafka.subscriber';
 
 export interface IUserService {
   initialize(): Promise<void>;
@@ -29,8 +23,7 @@ export interface IUserService {
 export class UserService implements IUserService {
   // #region DI
   private _userRepository?: UserRepository;
-  private _kafka?: KafkaInfrastructure;
-  private _userDtoLoaderById?: DataLoader<string, UserDto>;
+  private _kafkaSubscriber?: IUserKafkaSubscriber;
 
   private get userRepository () {
     if (!this._userRepository) {
@@ -40,32 +33,17 @@ export class UserService implements IUserService {
     return this._userRepository;
   }
 
-  private get kafka () {
-    if (!this._kafka) {
-      this._kafka = Container.get(KafkaInfrastructure);
+  private get kafkaSubscriber () {
+    if (!this._kafkaSubscriber) {
+      this._kafkaSubscriber = ContainerHelper.get<IUserKafkaSubscriber>(ContainerItems.IUserKafkaSubscriber);
     }
 
-    return this._kafka;
-  }
-
-  private get userDtoLoaderById () {
-    if (!this._userDtoLoaderById) {
-      this._userDtoLoaderById = Container.get<DataLoaderInfrastructure<User>>(ContainerKeys.USER_DATA_LOADER)
-        .getDataLoader({ entity: User, Dto: UserDto, fetchField: 'id', relations: [{ relation: 'role', relationDto: RoleDto }] });
-    }
-
-    return this._userDtoLoaderById;
+    return this._kafkaSubscriber;
   }
   // #endregion
 
   async initialize () {
-    const serviceSubscriptions = [
-      { topicName: Subjects.FETCH_USER_REQUEST, handler: this.handleFetchUserRequest }
-    ];
-
-    for (const { topicName, handler } of serviceSubscriptions) {
-      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.AUTH_SERVICE_GROUP } });
-    }
+    await this.kafkaSubscriber.initialize();
   }
 
   @RedisDecorator(redisCacheConfig.USER_LIST)
@@ -75,18 +53,5 @@ export class UserService implements IUserService {
     });
 
     return { payloads, total, result: ResultMessage.SUCCESS };
-  }
-
-  private async handleFetchUserRequest (message: string): Promise<void> {
-    await this.getBy(message);
-  }
-
-  @EventPublisherDecorator(userEventPublisher.USER_GET_BY)
-  private async getBy (message: string) {
-    const { message: request } = JSON.parse(message);
-    const { userId: id } = JSON.parse(request);
-
-    await this.userDtoLoaderById.clearAll();
-    return this.userDtoLoaderById.load(id);
   }
 }
