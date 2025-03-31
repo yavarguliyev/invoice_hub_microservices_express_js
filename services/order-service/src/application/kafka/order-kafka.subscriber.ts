@@ -6,18 +6,18 @@ import {
   Subjects,
   LoggerTracerInfrastructure,
   EventPublisherDecorator,
-  orderEventPublisher,
-  OrderStatus,
-  DataLoaderInfrastructure,
-  ContainerKeys,
-  OrderDto,
-  KafkaRequestOptions,
   ContainerHelper,
   ContainerItems,
-  BadRequestError,
-  transactionEventPublisher,
+  ProcessType,
   ProcessStepStatus,
-  ProcessType
+  OrderStatus,
+  KafkaRequestOptions,
+  transactionEventPublisher,
+  orderEventPublisher,
+  OrderDto,
+  DataLoaderInfrastructure,
+  ContainerKeys,
+  BadRequestError
 } from '@invoice-hub/common';
 
 import { IOrderTransactionManager } from 'application/transactions/order-transaction.manager';
@@ -26,7 +26,6 @@ import { Order } from 'domain/entities/order.entity';
 export interface IOrderKafkaSubscriber {
   initialize(): Promise<void>;
   requestUserData(options: KafkaRequestOptions[]): Promise<string[]>;
-  handleCompensateOrderStatusFailedPublisher(transactionId: string, order: Order): unknown;
 }
 
 export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
@@ -62,45 +61,30 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
   // #endregion
 
   async initialize (): Promise<void> {
-    await Promise.all([
-      this.kafka.subscribe({
-        topicName: Subjects.FETCH_ORDER_REQUEST,
-        handler: this.handleOrderFetchRequest.bind(this),
-        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPENSATION_START,
-        handler: this.handleTransactionCompensationStart.bind(this),
-        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS,
-        handler: this.handleUpdateOrderStatus.bind(this),
-        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.ORDER_APPROVAL_COMPENSATE_UPDATE_ORDER_STATUS,
-        handler: this.handleCompensateOrderStatus.bind(this),
-        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPLETED,
-        handler: this.handleTransactionCompleted.bind(this),
-        options: { groupId: GroupIds.ORDER_SERVICE_GROUP }
-      })
-    ]);
+    const serviceSubscriptions = [
+      { topicName: Subjects.FETCH_ORDER_REQUEST, handler: this.handleFetchOrderRequest }
+    ];
+
+    const transactionSubscriptions = [
+      { topicName: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS, handler: this.handleUpdateOrderStatus },
+      { topicName: Subjects.TRANSACTION_COMPENSATION_START, handler: this.handleTransactionCompensationStart },
+      { topicName: Subjects.TRANSACTION_COMPLETED, handler: this.handleTransactionCompleted }
+    ];
+
+    for (const { topicName, handler } of serviceSubscriptions) {
+      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.ORDER_SERVICE_APP_GROUP } });
+    }
+
+    for (const { topicName, handler } of transactionSubscriptions) {
+      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.ORDER_SERVICE_TRANSACTION_GROUP } });
+    }
   }
 
   async requestUserData (options: KafkaRequestOptions[]): Promise<string[]> {
     return await this.kafka.requestResponse(options);
   }
 
-  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_FAILED)
-  handleCompensateOrderStatusFailedPublisher (transactionId: string, order: Order) {
-    return { ...order, transactionId, error: 'Invalid total amount' };
-  }
-
-  private async handleOrderFetchRequest (message: string): Promise<void> {
+  private async handleFetchOrderRequest (message: string): Promise<void> {
     await this.getBy(message);
   }
 
@@ -117,6 +101,10 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     const { transactionId, failedStep } = message;
 
     LoggerTracerInfrastructure.log(`Order service received compensation start for transaction ${transactionId}, failed step: ${failedStep}`);
+
+    if (failedStep === Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS) {
+      await this.transactionManager.handleCompensation(transactionId);
+    }
   }
 
   private async handleUpdateOrderStatus (messageStr: string): Promise<void> {
@@ -135,19 +123,11 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     this.handleUpdateOrderStatusPublisher(transactionId, orderId);
   }
 
-  private async handleCompensateOrderStatus (messageStr: string): Promise<void> {
-    const message = JSON.parse(messageStr);
-    const { transactionId, orderId } = message;
-
-    await this.transactionManager.compensateOrderStatus(orderId, transactionId);
-    this.handleCompensateOrderStatusPublisher(transactionId);
-  }
-
   private async handleTransactionCompleted (messageStr: string): Promise<void> {
     const message = JSON.parse(messageStr);
     const { transactionId, processType } = message;
 
-    LoggerTracerInfrastructure.log(`Invoice service notified of completed transaction: ${transactionId}, type: ${processType}`);
+    LoggerTracerInfrastructure.log(`Order service notified of completed transaction: ${transactionId}, type: ${processType}`);
   }
 
   @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_COMPLETED)
@@ -155,22 +135,12 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     return {
       transactionId,
       processType: ProcessType.ORDER_APPROVAL,
-      stepName: Subjects.UPDATE_ORDER_STATUS,
+      stepName: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS,
       status: ProcessStepStatus.COMPLETED,
       payload: {
         orderId,
         orderStatus: OrderStatus.COMPLETED
       }
-    };
-  }
-
-  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_COMPENSATION_COMPLETED)
-  private handleCompensateOrderStatusPublisher (transactionId: string) {
-    return {
-      transactionId: transactionId,
-      processType: ProcessType.ORDER_APPROVAL,
-      stepName: Subjects.UPDATE_ORDER_STATUS,
-      status: ProcessStepStatus.COMPENSATED
     };
   }
 }

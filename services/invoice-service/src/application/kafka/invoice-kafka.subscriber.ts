@@ -7,11 +7,10 @@ import {
   EventPublisherDecorator,
   ContainerHelper,
   ContainerItems,
-  transactionEventPublisher,
-  BadRequestError,
   ProcessType,
   ProcessStepStatus,
-  getErrorMessage
+  getErrorMessage,
+  transactionEventPublisher
 } from '@invoice-hub/common';
 
 import { IInvoiceTransactionManager } from 'application/transactions/invoice-transaction.manager';
@@ -30,7 +29,6 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
     if (!this._kafka) {
       this._kafka = Container.get(KafkaInfrastructure);
     }
-
     return this._kafka;
   }
 
@@ -38,34 +36,27 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
     if (!this._transactionManager) {
       this._transactionManager = ContainerHelper.get<IInvoiceTransactionManager>(ContainerItems.IInvoiceTransactionManager);
     }
-
     return this._transactionManager;
   }
   // #endregion
 
   async initialize (): Promise<void> {
-    await Promise.all([
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPENSATION_START,
-        handler: this.handleTransactionCompensationStart.bind(this),
-        options: { groupId: GroupIds.INVOICE_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE,
-        handler: this.handleTransactionInvoiceGeneration.bind(this),
-        options: { groupId: GroupIds.INVOICE_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.ORDER_APPROVAL_COMPENSATE_INVOICE_GENERATE,
-        handler: this.handleCompensateInvoiceGeneration.bind(this),
-        options: { groupId: GroupIds.INVOICE_SERVICE_GROUP }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPLETED,
-        handler: this.handleTransactionCompleted.bind(this),
-        options: { groupId: GroupIds.INVOICE_SERVICE_GROUP }
-      })
-    ]);
+    const serviceSubscriptions = [
+      { topicName: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE, handler: this.handleTransactionInvoiceGeneration }
+    ];
+
+    const transactionSubscriptions = [
+      { topicName: Subjects.TRANSACTION_COMPENSATION_START, handler: this.handleTransactionCompensationStart },
+      { topicName: Subjects.TRANSACTION_COMPLETED, handler: this.handleTransactionCompleted }
+    ];
+
+    for (const { topicName, handler } of serviceSubscriptions) {
+      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.INVOICE_SERVICE_APP_GROUP } });
+    }
+
+    for (const { topicName, handler } of transactionSubscriptions) {
+      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.INVOICE_SERVICE_TRANSACTION_GROUP } });
+    }
   }
 
   private async handleTransactionCompensationStart (messageStr: string): Promise<void> {
@@ -73,50 +64,38 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
     const { transactionId, failedStep } = message;
 
     LoggerTracerInfrastructure.log(`Invoice service received compensation start for transaction ${transactionId}, failed step: ${failedStep}`);
+
+    if (failedStep === Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE) {
+      await this.transactionManager.handleCompensation(transactionId);
+    }
   }
 
   private async handleTransactionInvoiceGeneration (messageStr: string): Promise<void> {
+    LoggerTracerInfrastructure.log(`Invoice service received message: ${messageStr}`);
+
     try {
       const message = JSON.parse(messageStr);
-      const { transactionId, orderId, userId, totalAmount } = message;
+      LoggerTracerInfrastructure.log(`Parsed message: ${JSON.stringify(message)}`);
 
-      LoggerTracerInfrastructure.log(`Processing invoice generation for transaction ${transactionId}, orderId: ${orderId}`);
+      const { transactionId, orderId, totalAmount } = message;
+
+      if (!transactionId || !orderId || totalAmount === undefined) {
+        LoggerTracerInfrastructure.log(`Missing required fields in message: transactionId=${transactionId}, orderId=${orderId}, totalAmount=${totalAmount}`);
+        return;
+      }
 
       const invoice = await this.transactionManager.generateInvoiceInTransaction(
         transactionId,
         orderId,
-        userId,
         totalAmount
       );
 
       LoggerTracerInfrastructure.log(`Invoice generated with ID: ${invoice.id} in transaction ${transactionId}`);
       this.handleTransactionInvoiceGenerationPublisher(transactionId, invoice);
     } catch (error) {
+      LoggerTracerInfrastructure.log(`Error in handleTransactionInvoiceGeneration: ${getErrorMessage(error)}`);
       const message = JSON.parse(messageStr);
-      this.handleCompensateInvoiceGenerationFailPublisher(message.transactionId, error);
-    }
-  }
-
-  private async handleCompensateInvoiceGeneration (messageStr: string): Promise<void> {
-    try {
-      const message = JSON.parse(messageStr);
-      const { transactionId, orderId, userId, totalAmount } = message;
-
-      if (totalAmount <= 0) {
-        throw new BadRequestError('Cannot generate invoice with negative or zero amount');
-      }
-
-      const invoice = await this.transactionManager.generateInvoiceInTransaction(
-        transactionId,
-        orderId,
-        userId,
-        totalAmount
-      );
-
-      this.handleTransactionInvoiceGenerationPublisher(transactionId, invoice);
-    } catch (error) {
-      const message = JSON.parse(messageStr);
-      this.handleCompensateInvoiceGenerationFailPublisher(message.transactionId, error);
+      this.handleTransactionInvoiceGenerationFailPublisher(message.transactionId, error);
     }
   }
 
@@ -132,7 +111,7 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
     return {
       transactionId,
       processType: ProcessType.ORDER_APPROVAL,
-      stepName: Subjects.INVOICE_GENERATE,
+      stepName: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE,
       status: ProcessStepStatus.COMPLETED,
       payload: {
         invoiceId: invoice.id,
@@ -142,11 +121,11 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
   }
 
   @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_FAILED)
-  private handleCompensateInvoiceGenerationFailPublisher (transactionId: string, error: unknown) {
+  private handleTransactionInvoiceGenerationFailPublisher (transactionId: string, error: unknown) {
     return {
       transactionId,
       processType: ProcessType.ORDER_APPROVAL,
-      stepName: Subjects.INVOICE_GENERATE,
+      stepName: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE,
       status: ProcessStepStatus.FAILED,
       error: getErrorMessage(error)
     };

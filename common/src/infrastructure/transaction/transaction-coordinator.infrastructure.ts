@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { KafkaInfrastructure } from '../kafka/kafka.infrastructure';
 import { RedisInfrastructure } from '../redis/redis.infrastructure';
-import { isSerializedTransaction, deserializeTransaction, getErrorMessage } from '../../application/helpers/utility-functions.helper';
+import { isSerializedTransaction, deserializeTransaction } from '../../application/helpers/utility-functions.helper';
 import { Subjects, ClientIds, GroupIds } from '../../domain/enums/events.enum';
 import { ProcessType, DistributedTransactionStatus, ProcessStepStatus } from '../../domain/enums/distributed-transaction.enum';
 import {
@@ -35,38 +35,18 @@ export class TransactionCoordinatorInfrastructure {
       return;
     }
 
-    await Promise.all([
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_STEP_COMPLETED,
-        handler: this.handleTransactionStepCompleted.bind(this),
-        options: { groupId }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_STEP_FAILED,
-        handler: this.handleTransactionStepFailed.bind(this),
-        options: { groupId }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_TIMEOUT,
-        handler: this.handleTransactionTimeout.bind(this),
-        options: { groupId }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPENSATION_START,
-        handler: this.handleTransactionCompensationStart.bind(this),
-        options: { groupId }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPENSATION_COMPLETED,
-        handler: this.handleTransactionCompensationCompleted.bind(this),
-        options: { groupId }
-      }),
-      this.kafka.subscribe({
-        topicName: Subjects.TRANSACTION_COMPLETED,
-        handler: this.handleTransactionCompleted.bind(this),
-        options: { groupId }
-      })
-    ]);
+    const subscriptions = [
+      { topic: Subjects.TRANSACTION_STEP_COMPLETED, handler: this.handleTransactionStepCompleted },
+      { topic: Subjects.TRANSACTION_STEP_FAILED, handler: this.handleTransactionStepFailed },
+      { topic: Subjects.TRANSACTION_COMPENSATION_START, handler: this.handleTransactionCompensationStart },
+      { topic: Subjects.TRANSACTION_COMPENSATION_COMPLETED, handler: this.handleTransactionCompensationCompleted },
+      { topic: Subjects.TRANSACTION_COMPLETED, handler: this.handleTransactionCompleted },
+      { topic: Subjects.TRANSACTION_TIMEOUT, handler: this.handleTransactionTimeout }
+    ];
+
+    for (const { topic, handler } of subscriptions) {
+      await this.kafka.subscribe({ topicName: topic, handler: handler.bind(this), options: { groupId } });
+    }
 
     this.startTimeoutChecker();
     this.isInitialized = true;
@@ -107,17 +87,19 @@ export class TransactionCoordinatorInfrastructure {
     }
   }
 
-  private async progressTransaction(transactionId: string): Promise<void> {
+  private async progressTransaction (transactionId: string): Promise<void> {
     const transaction = await this.getTransactionState(transactionId);
 
-    if (!transaction ||
-      (transaction.status !== DistributedTransactionStatus.STARTED &&
-        transaction.status !== DistributedTransactionStatus.IN_PROGRESS)) {
+    const isTransactionMissing = !transaction;
+    const isTransactionStarted = transaction?.status === DistributedTransactionStatus.STARTED;
+    const isTransactionInProgress = transaction?.status === DistributedTransactionStatus.IN_PROGRESS;
+
+    if (isTransactionMissing || (!isTransactionStarted && !isTransactionInProgress)) {
       LoggerTracerInfrastructure.log(`Transaction ${transactionId} not in valid state for progression: ${transaction?.status || 'unknown'}`);
       return;
     }
 
-    LoggerTracerInfrastructure.log(`Transaction ${transactionId} progress: step ${transaction.currentStep+1} of ${transaction.steps.length}`);
+    LoggerTracerInfrastructure.log(`Transaction ${transactionId} progress: step ${transaction.currentStep + 1} of ${transaction.steps.length}`);
 
     if (transaction.currentStep >= transaction.steps.length) {
       LoggerTracerInfrastructure.log(`Transaction ${transactionId} reached final step, completing...`);
@@ -127,19 +109,24 @@ export class TransactionCoordinatorInfrastructure {
 
     const currentStep = transaction.steps[transaction.currentStep];
     currentStep.startedAt = new Date();
-    transaction.status = DistributedTransactionStatus.IN_PROGRESS;
 
-    await this.storeTransactionState(transaction);
+    await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.IN_PROGRESS });
 
-    const topicName = this.getStepTopicName(transaction.processType, currentStep.name);
+    const topicName = this.getStepTopicName(currentStep.name);
+    const message = JSON.stringify({
+      transactionId: transaction.transactionId,
+      ...transaction.payload,
+      stepName: currentStep.name
+    });
+
+    LoggerTracerInfrastructure.log(`Publishing message to topic: ${topicName}, message: ${message}`);
+
     await this.kafka.publish({
       topicName,
-      message: JSON.stringify({
-        transactionId: transaction.transactionId,
-        ...transaction.payload,
-        stepName: currentStep.name
-      })
+      message
     });
+
+    LoggerTracerInfrastructure.log(`Successfully published message to topic: ${topicName}`);
   }
 
   private async handleTransactionStepCompleted (messageStr: string): Promise<void> {
@@ -180,10 +167,8 @@ export class TransactionCoordinatorInfrastructure {
 
     currentStep.status = ProcessStepStatus.FAILED;
     currentStep.error = event.error;
-    transaction.status = DistributedTransactionStatus.FAILED;
-    transaction.error = event.error;
 
-    await this.storeTransactionState(transaction);
+    await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.FAILED, error: event.error });
     await this.startCompensation(event.transactionId);
   }
 
@@ -211,10 +196,7 @@ export class TransactionCoordinatorInfrastructure {
       return;
     }
 
-    transaction.status = DistributedTransactionStatus.COMPLETED;
-    transaction.completedAt = new Date();
-    await this.storeTransactionState(transaction);
-    
+    await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.COMPLETED, completedAt: new Date() });
     await this.kafka.publish({
       topicName: Subjects.TRANSACTION_COMPLETED,
       message: JSON.stringify({
@@ -232,10 +214,7 @@ export class TransactionCoordinatorInfrastructure {
       return;
     }
 
-    transaction.status = DistributedTransactionStatus.TIMED_OUT;
-    transaction.error = 'Transaction timed out';
-    await this.storeTransactionState(transaction);
-
+    await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.TIMED_OUT, error: 'Transaction timed out' });
     await this.startCompensation(transactionId);
   }
 
@@ -248,7 +227,6 @@ export class TransactionCoordinatorInfrastructure {
 
   private async executeCompensation (transactionId: string, processType: ProcessType, failedStep?: string): Promise<void> {
     const transaction = await this.getTransactionState(transactionId);
-
     if (!transaction) {
       const minimalTransaction: DistributedTransaction = {
         transactionId,
@@ -265,13 +243,11 @@ export class TransactionCoordinatorInfrastructure {
       return;
     }
 
-    if (transaction.status === DistributedTransactionStatus.COMPENSATING ||
-      transaction.status === DistributedTransactionStatus.COMPENSATED) {
+    if (transaction.status === DistributedTransactionStatus.COMPENSATING || transaction.status === DistributedTransactionStatus.COMPENSATED) {
       return;
     }
 
-    transaction.status = DistributedTransactionStatus.COMPENSATING;
-    await this.storeTransactionState(transaction);
+    await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.COMPENSATING });
 
     if (transaction.steps?.length) {
       const completedSteps = transaction.steps
@@ -280,10 +256,8 @@ export class TransactionCoordinatorInfrastructure {
         .reverse();
 
       for (const step of completedSteps) {
-        const compensationTopic = this.getCompensationTopicName(transaction.processType, step.name);
-
         await this.kafka.publish({
-          topicName: compensationTopic,
+          topicName: step.name,
           message: JSON.stringify({
             transactionId: transaction.transactionId,
             ...transaction.payload,
@@ -294,9 +268,7 @@ export class TransactionCoordinatorInfrastructure {
         step.status = ProcessStepStatus.COMPENSATED;
       }
 
-      transaction.status = DistributedTransactionStatus.COMPENSATED;
-      transaction.completedAt = new Date();
-      await this.storeTransactionState(transaction);
+      await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.COMPENSATED, completedAt: new Date() });
     }
 
     await this.kafka.publish({
@@ -335,9 +307,7 @@ export class TransactionCoordinatorInfrastructure {
       return;
     }
 
-    transaction.status = DistributedTransactionStatus.COMPENSATED;
-    transaction.completedAt = new Date();
-    await this.storeTransactionState(transaction);
+    await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.COMPENSATED, completedAt: new Date() });
   }
 
   private async handleTransactionCompleted (messageStr: string): Promise<void> {
@@ -364,9 +334,7 @@ export class TransactionCoordinatorInfrastructure {
     }
 
     if (transaction.status !== DistributedTransactionStatus.COMPLETED) {
-      transaction.status = DistributedTransactionStatus.COMPLETED;
-      transaction.completedAt = new Date();
-      await this.storeTransactionState(transaction);
+      await this.storeTransactionState({ ...transaction, status: DistributedTransactionStatus.COMPENSATED, completedAt: new Date() });
     }
   }
 
@@ -470,12 +438,8 @@ export class TransactionCoordinatorInfrastructure {
     }
   }
 
-  private getStepTopicName (processType: ProcessType, stepName: string): string {
-    return `${processType.toLowerCase()}-step-${stepName.toLowerCase()}`;
-  }
-
-  private getCompensationTopicName (processType: ProcessType, stepName: string): string {
-    return `${processType.toLowerCase()}-compensate-${stepName.toLowerCase()}`;
+  private getStepTopicName (stepName: string): string {
+    return stepName;
   }
 
   private async getTransactionKeys (): Promise<string[]> {

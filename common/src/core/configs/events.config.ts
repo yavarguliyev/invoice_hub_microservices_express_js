@@ -8,9 +8,8 @@ const userEventPublisher: Record<string, EventDecoratorOptions> = {
 };
 
 const orderEventPublisher: Record<string, EventDecoratorOptions> = {
-  ORDER_GET_BY: { topicName: Subjects.FETCH_ORDER_RESPONSE, prepareMessage },
-  ORDER_INVOICE_GENERATE: {
-    topicName: Subjects.INVOICE_GENERATE,
+  ORDER_GET_BY: {
+    topicName: Subjects.FETCH_ORDER_RESPONSE,
     prepareMessage,
     keyTemplates: [
       { clientId: ClientIds.ORDER_SERVICE, keyTemplate: REDIS_CACHE_KEYS.ORDER_GET_LIST }
@@ -19,7 +18,13 @@ const orderEventPublisher: Record<string, EventDecoratorOptions> = {
 };
 
 const invoiceEventPublisher: Record<string, EventDecoratorOptions> = {
-  INVOICE_GET_BY: { topicName: Subjects.FETCH_INVOICE_RESPONSE, prepareMessage: (data) => data }
+  INVOICE_GET_BY: {
+    topicName: Subjects.FETCH_INVOICE_RESPONSE,
+    prepareMessage: (data) => data,
+    keyTemplates: [
+      { clientId: ClientIds.ORDER_SERVICE, keyTemplate: REDIS_CACHE_KEYS.INVOICE_GET_LIST }
+    ]
+  }
 };
 
 const transactionEventPublisher: Record<string, EventDecoratorOptions> = {

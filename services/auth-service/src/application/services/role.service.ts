@@ -8,6 +8,7 @@ export interface IRoleService {
 }
 
 export class RoleService implements IRoleService {
+  // #region DI
   private _roleRepository?: RoleRepository;
 
   private get roleRepository () {
@@ -17,6 +18,7 @@ export class RoleService implements IRoleService {
 
     return this._roleRepository;
   }
+  // #endregion
 
   @RedisDecorator(redisCacheConfig.ROLE_LIST)
   async get (query: GetQueryResultsArgs) {

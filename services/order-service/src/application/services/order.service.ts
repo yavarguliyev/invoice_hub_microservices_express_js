@@ -105,10 +105,8 @@ export class OrderService implements IOrderService {
     const newOrder = await this.orderRepository.save(order);
 
     if (args.totalAmount <= 0) {
-      const transactionId = await this.transactionManager.startFailedOrderTransaction(newOrder, 'Invalid total amount', OrderStatus.CANCELLED);
+      await this.transactionManager.startFailedOrderTransaction(newOrder, 'Invalid total amount', OrderStatus.CANCELLED);
       const payload = plainToInstance(OrderDto, newOrder, { excludeExtraneousValues: true });
-
-      this.kafkaSubscriber.handleCompensateOrderStatusFailedPublisher(transactionId, order);
 
       return { payload, result: ResultMessage.FAILED_ORDER_UPDATE_STATUS };
     }

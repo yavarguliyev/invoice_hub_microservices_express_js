@@ -38,11 +38,14 @@ export class LoggerTracerInfrastructure {
 
     const memberAssignment = entry.log?.memberAssignment;
     if (memberAssignment && Object.keys(memberAssignment).length > 0) {
-      const topicName = Object.keys(memberAssignment)[0];
+      const topics = Object.keys(memberAssignment);
+      const topicCount = topics.length;
       const groupId = entry.log.groupId;
       const logMessage = entry.log.message;
 
-      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}, Topic: ${topicName}`, levelMapping[level]);
+      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}, Topics(${topicCount}): ${topics.join(', ')}`, levelMapping[level]);
+    } else if (entry.log?.message) {
+      LoggerTracerInfrastructure.log(entry.log.message, levelMapping[level]);
     }
   }
 }

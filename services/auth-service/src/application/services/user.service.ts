@@ -27,6 +27,7 @@ export interface IUserService {
 }
 
 export class UserService implements IUserService {
+  // #region DI
   private _userRepository?: UserRepository;
   private _kafka?: KafkaInfrastructure;
   private _userDtoLoaderById?: DataLoader<string, UserDto>;
@@ -55,13 +56,16 @@ export class UserService implements IUserService {
 
     return this._userDtoLoaderById;
   }
+  // #endregion
 
   async initialize () {
-    await this.kafka.subscribe({
-      topicName: Subjects.FETCH_USER_REQUEST,
-      handler: this.handleUserFetchRequest.bind(this),
-      options: { groupId: GroupIds.AUTH_SERVICE_GROUP }
-    });
+    const serviceSubscriptions = [
+      { topicName: Subjects.FETCH_USER_REQUEST, handler: this.handleFetchUserRequest }
+    ];
+
+    for (const { topicName, handler } of serviceSubscriptions) {
+      await this.kafka.subscribe({ topicName, handler: handler.bind(this), options: { groupId: GroupIds.AUTH_SERVICE_GROUP } });
+    }
   }
 
   @RedisDecorator(redisCacheConfig.USER_LIST)
@@ -73,7 +77,7 @@ export class UserService implements IUserService {
     return { payloads, total, result: ResultMessage.SUCCESS };
   }
 
-  private async handleUserFetchRequest (message: string): Promise<void> {
+  private async handleFetchUserRequest (message: string): Promise<void> {
     await this.getBy(message);
   }
 

@@ -45,19 +45,39 @@ export class KafkaInfrastructure {
     await this.producer.publish(args);
   }
 
+  async topicExists (topicName: string): Promise<boolean> {
+    try {
+      const topics = await this.admin.listTopics();
+      return topics.includes(topicName);
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error checking if topic ${topicName} exists: ${getErrorMessage(error)}`);
+      return false;
+    }
+  }
+
   async subscribe (args: KafkaSubscriberOptions) {
     if (!this.isInitialized) {
       throw new Error('Kafka is not initialized');
     }
 
-    const groupId = args.options?.groupId ?? GroupIds.BASE_GROUP;
-    if (!this.consumerInstances.has(groupId)) {
-      this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
-      await this.consumerInstances.get(groupId)!.connect();
-    }
+    try {
+      const topicExists = await this.topicExists(args.topicName);
+      if (!topicExists) {
+        await this.producer.createTopic({ topicName: args.topicName });
+      }
 
-    const consumerInstance = this.consumerInstances.get(groupId)!;
-    await consumerInstance.subscribe(args);
+      const groupId = args.options?.groupId ?? GroupIds.BASE_GROUP;
+      if (!this.consumerInstances.has(groupId)) {
+        this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
+        await this.consumerInstances.get(groupId)!.connect();
+      }
+
+      const consumerInstance = this.consumerInstances.get(groupId)!;
+      await consumerInstance.subscribe(args);
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error subscribing to topic ${args.topicName}: ${getErrorMessage(error)}`);
+      throw error;
+    }
   }
 
   async requestResponse (args: KafkaRequestOptions[]) {
@@ -120,5 +140,61 @@ export class KafkaInfrastructure {
     await Promise.all([this.producer?.disconnect(), this.consumer?.disconnect(), this.admin?.disconnect()]);
     this.isInitialized = false;
     LoggerTracerInfrastructure.log('Kafka fully disconnected.');
+  }
+
+  async createTopics (topicNames: string[]): Promise<void> {
+    if (!this.isInitialized || !this.producer) {
+      throw new Error('Kafka is not initialized');
+    }
+
+    for (const topicName of topicNames) {
+      await this.producer.createTopic({ topicName });
+    }
+  }
+
+  async batchSubscribe (subscriptions: KafkaSubscriberOptions[]): Promise<void> {
+    if (!this.isInitialized) {
+      throw new Error('Kafka is not initialized');
+    }
+
+    try {
+      const subscriptionsByGroup = new Map<string, KafkaSubscriberOptions[]>();
+      for (const subscription of subscriptions) {
+        const groupId = subscription.options?.groupId ?? GroupIds.BASE_GROUP;
+        if (!subscriptionsByGroup.has(groupId)) {
+          subscriptionsByGroup.set(groupId, []);
+        }
+
+        subscriptionsByGroup.get(groupId)!.push(subscription);
+      }
+
+      for (const [groupId, groupSubscriptions] of subscriptionsByGroup.entries()) {
+        if (!this.consumerInstances.has(groupId)) {
+          this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
+          await this.consumerInstances.get(groupId)!.connect();
+        }
+
+        const consumerInstance = this.consumerInstances.get(groupId)!;
+        await consumerInstance.batchSubscribe(groupSubscriptions);
+      }
+    } catch (error) {
+      LoggerTracerInfrastructure.log(`Error batch subscribing to topics: ${getErrorMessage(error)}`, 'error');
+      throw error;
+    }
+  }
+
+  async subscribeAll (groupId: GroupIds, subscriptions: Array<{topicName: string, handler: (message: string) => Promise<void>}>): Promise<void> {
+    if (!this.isInitialized) {
+      throw new Error('Kafka is not initialized');
+    }
+
+    if (!this.consumerInstances.has(groupId)) {
+      this.consumerInstances.set(groupId, new KafkaConsumerInfrastructure(this.kafka, groupId));
+      await this.consumerInstances.get(groupId)!.connect();
+    }
+
+    const consumer = this.consumerInstances.get(groupId)!;
+
+    await consumer.subscribeAll(subscriptions);
   }
 }

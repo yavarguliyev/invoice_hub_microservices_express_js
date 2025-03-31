@@ -14,6 +14,7 @@ export interface IAuthService {
 }
 
 export class AuthService implements IAuthService {
+  // #region DI
   private _userRepository?: UserRepository;
 
   private get userRepository () {
@@ -23,6 +24,7 @@ export class AuthService implements IAuthService {
 
     return this._userRepository;
   }
+  // #endregion
 
   async signin (args: SigninArgs) {
     const { email, password } = args;
