@@ -75,3 +75,8 @@ export interface TransactionOptions {
 export interface CompensationEvent extends TransactionEvent {
   failedStep?: string;
 }
+
+export interface EventMessage {
+  topicName: string;
+  message: unknown;
+}

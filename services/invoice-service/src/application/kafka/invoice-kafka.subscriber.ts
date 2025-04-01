@@ -10,7 +10,7 @@ import {
   ProcessType,
   ProcessStepStatus,
   getErrorMessage,
-  transactionEventPublisher
+  EVENT_PUBLISHER_OPERATION
 } from '@invoice-hub/common';
 
 import { IInvoiceTransactionManager } from 'application/transactions/invoice-transaction.manager';
@@ -47,18 +47,20 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
     }
 
     const subscriptions = [
-      { topic: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE, handler: this.handleTransactionInvoiceGeneration.bind(this) },
-      { topic: Subjects.TRANSACTION_USER_NOTIFICATION, handler: this.handleUserNotification.bind(this) }
+      {
+        topic: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE,
+        handler: this.handleTransactionInvoiceGeneration.bind(this),
+        options: { groupId: GroupIds.INVOICE_SERVICE_APP_GROUP }
+      },
+      {
+        topic: Subjects.TRANSACTION_USER_NOTIFICATION,
+        handler: this.handleUserNotification.bind(this),
+        options: { groupId: GroupIds.INVOICE_SERVICE_TRANSACTION_GROUP }
+      }
     ];
 
-    for (const { topic, handler } of subscriptions) {
-      await this.kafka.subscribe({
-        topicName: topic,
-        handler: handler.bind(this),
-        options: {
-          groupId: this.isTransactionTopic(topic) ? GroupIds.INVOICE_SERVICE_TRANSACTION_GROUP : GroupIds.INVOICE_SERVICE_APP_GROUP
-        }
-      });
+    for (const { topic, handler, options } of subscriptions) {
+      await this.kafka.subscribe({ topicName: topic, handler: handler.bind(this), options });
     }
 
     this.isInitialized = true;
@@ -66,15 +68,15 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
 
   private async handleTransactionInvoiceGeneration (messageStr: string): Promise<void> {
     const message = JSON.parse(messageStr);
-    const { transactionId, orderId, totalAmount } = message;
+    const { orderId, userId, totalAmount, transactionId } = message;
 
-    if (!transactionId || !orderId || totalAmount === undefined) {
+    if (!userId || !orderId || totalAmount === undefined) {
       return;
     }
 
     const invoice = await this.transactionManager.generateInvoiceInTransaction(
-      transactionId,
       orderId,
+      userId,
       totalAmount
     );
 
@@ -105,20 +107,19 @@ export class InvoiceKafkaSubscriber implements IInvoiceKafkaSubscriber {
     }
   }
 
-  private isTransactionTopic (topic: string): boolean {
-    return topic.includes('transaction');
-  }
-
-  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_COMPLETED)
+  @EventPublisherDecorator(EVENT_PUBLISHER_OPERATION)
   private handleTransactionInvoiceGenerationPublisher (transactionId: string, invoice: Invoice) {
     return {
-      transactionId,
-      processType: ProcessType.ORDER_APPROVAL,
-      stepName: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE,
-      status: ProcessStepStatus.COMPLETED,
-      payload: {
-        invoiceId: invoice.id,
-        invoiceStatus: invoice.status
+      topicName: Subjects.TRANSACTION_STEP_COMPLETED,
+      message: {
+        transactionId,
+        processType: ProcessType.ORDER_APPROVAL,
+        stepName: Subjects.ORDER_APPROVAL_STEP_INVOICE_GENERATE,
+        status: ProcessStepStatus.COMPLETED,
+        payload: {
+          invoiceId: invoice.id,
+          invoiceStatus: invoice.status
+        }
       }
     };
   }

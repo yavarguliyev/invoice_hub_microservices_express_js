@@ -7,9 +7,9 @@ import {
   EventPublisherDecorator,
   DataLoaderInfrastructure,
   ContainerKeys,
-  userEventPublisher,
   UserDto,
-  RoleDto
+  RoleDto,
+  EVENT_PUBLISHER_OPERATION
 } from '@invoice-hub/common';
 
 import { User } from 'domain/entities/user.entity';
@@ -48,17 +48,11 @@ export class UserKafkaSubscriber implements IUserKafkaSubscriber {
     }
 
     const subscriptions = [
-      { topic: Subjects.FETCH_USER_REQUEST, handler: this.handleFetchUserRequest }
+      { topic: Subjects.FETCH_USER_REQUEST, handler: this.handleFetchUserRequest, options: { groupId: GroupIds.AUTH_SERVICE_GROUP } }
     ];
 
-    for (const { topic, handler } of subscriptions) {
-      await this.kafka.subscribe({
-        topicName: topic,
-        handler: handler.bind(this),
-        options: {
-          groupId: GroupIds.AUTH_SERVICE_GROUP
-        }
-      });
+    for (const { topic, handler, options } of subscriptions) {
+      await this.kafka.subscribe({ topicName: topic, handler: handler.bind(this), options });
     }
 
     this.isInitialized = true;
@@ -68,12 +62,17 @@ export class UserKafkaSubscriber implements IUserKafkaSubscriber {
     await this.getBy(message);
   }
 
-  @EventPublisherDecorator(userEventPublisher.USER_GET_BY)
+  @EventPublisherDecorator(EVENT_PUBLISHER_OPERATION)
   private async getBy (message: string) {
-    const { message: request } = JSON.parse(message);
+    const { correlationId, message: request } = JSON.parse(message);
     const { userId: id } = JSON.parse(request);
 
-    await this.userDtoLoaderById.clearAll();
-    return this.userDtoLoaderById.load(id);
+    return {
+      topicName: Subjects.FETCH_USER_RESPONSE,
+      message: {
+        correlationId,
+        message: await this.userDtoLoaderById.load(id)
+      }
+    };
   }
 }

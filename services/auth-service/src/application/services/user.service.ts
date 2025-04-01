@@ -7,9 +7,9 @@ import {
   UserDto,
   RoleDto,
   RedisDecorator,
-  redisCacheConfig,
   ContainerHelper,
-  ContainerItems
+  ContainerItems,
+  REDIS_USER_LIST
 } from '@invoice-hub/common';
 
 import { UserRepository } from 'domain/repositories/user.repository';
@@ -46,7 +46,7 @@ export class UserService implements IUserService {
     await this.kafkaSubscriber.initialize();
   }
 
-  @RedisDecorator(redisCacheConfig.USER_LIST)
+  @RedisDecorator(REDIS_USER_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({
       repository: this.userRepository, query, dtoClass: UserDto, relatedEntity: { RelatedDtoClass: RoleDto, relationField: 'role' }

@@ -10,13 +10,11 @@ import {
   ProcessType,
   ProcessStepStatus,
   OrderStatus,
-  KafkaRequestOptions,
-  transactionEventPublisher,
-  orderEventPublisher,
   OrderDto,
   DataLoaderInfrastructure,
   ContainerKeys,
-  BadRequestError
+  BadRequestError,
+  EVENT_PUBLISHER_OPERATION
 } from '@invoice-hub/common';
 
 import { IOrderTransactionManager } from 'application/transactions/order-transaction.manager';
@@ -24,7 +22,6 @@ import { Order } from 'domain/entities/order.entity';
 
 export interface IOrderKafkaSubscriber {
   initialize(): Promise<void>;
-  requestUserData(options: KafkaRequestOptions[]): Promise<string[]>;
 }
 
 export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
@@ -66,37 +63,19 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     }
 
     const subscriptions = [
-      { topic: Subjects.FETCH_ORDER_REQUEST, handler: this.handleFetchOrderRequest },
-      { topic: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS, handler: this.handleUpdateOrderStatus }
+      { topic: Subjects.FETCH_ORDER_REQUEST, handler: this.handleFetchOrderRequest, options: { groupId: GroupIds.ORDER_USER_FETCH_GROUP } },
+      { topic: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS, handler: this.handleUpdateOrderStatus, options: { groupId: GroupIds.ORDER_SERVICE_TRANSACTION_GROUP } }
     ];
 
-    for (const { topic, handler } of subscriptions) {
-      await this.kafka.subscribe({
-        topicName: topic,
-        handler: handler.bind(this),
-        options: {
-          groupId: this.isTransactionTopic(topic) ? GroupIds.ORDER_SERVICE_TRANSACTION_GROUP : GroupIds.ORDER_SERVICE_APP_GROUP
-        }
-      });
+    for (const { topic, handler, options } of subscriptions) {
+      await this.kafka.subscribe({ topicName: topic, handler: handler.bind(this), options });
     }
 
     this.isInitialized = true;
   }
 
-  async requestUserData (options: KafkaRequestOptions[]): Promise<string[]> {
-    return await this.kafka.requestResponse(options);
-  }
-
   private async handleFetchOrderRequest (message: string): Promise<void> {
     await this.getBy(message);
-  }
-
-  @EventPublisherDecorator(orderEventPublisher.ORDER_GET_BY)
-  private async getBy (message: string) {
-    const { message: request } = JSON.parse(message);
-    const { orderId } = JSON.parse(request);
-
-    return await this.orderDtoLoaderById.load(orderId);
   }
 
   private async handleUpdateOrderStatus (messageStr: string): Promise<void> {
@@ -115,20 +94,33 @@ export class OrderKafkaSubscriber implements IOrderKafkaSubscriber {
     this.handleUpdateOrderStatusPublisher(transactionId, orderId);
   }
 
-  private isTransactionTopic (topic: string): boolean {
-    return topic.includes('transaction');
+  @EventPublisherDecorator(EVENT_PUBLISHER_OPERATION)
+  private async getBy (message: string) {
+    const { correlationId, message: request } = JSON.parse(message);
+    const { orderId: id } = JSON.parse(request);
+
+    return {
+      topicName: Subjects.FETCH_ORDER_RESPONSE,
+      message: {
+        correlationId,
+        message: await this.orderDtoLoaderById.load(id)
+      }
+    };
   }
 
-  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_STEP_COMPLETED)
+  @EventPublisherDecorator(EVENT_PUBLISHER_OPERATION)
   private handleUpdateOrderStatusPublisher (transactionId: string, orderId: string) {
     return {
-      transactionId,
-      processType: ProcessType.ORDER_APPROVAL,
-      stepName: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS,
-      status: ProcessStepStatus.COMPLETED,
-      payload: {
-        orderId,
-        orderStatus: OrderStatus.COMPLETED
+      topicName: Subjects.TRANSACTION_STEP_COMPLETED,
+      message: {
+        transactionId,
+        processType: ProcessType.ORDER_APPROVAL,
+        stepName: Subjects.ORDER_APPROVAL_STEP_UPDATE_ORDER_STATUS,
+        status: ProcessStepStatus.COMPLETED,
+        payload: {
+          orderId,
+          orderStatus: OrderStatus.COMPLETED
+        }
       }
     };
   }

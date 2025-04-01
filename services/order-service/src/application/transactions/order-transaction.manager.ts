@@ -9,7 +9,7 @@ import {
   DistributedTransactionStatus,
   LoggerTracerInfrastructure,
   EventPublisherDecorator,
-  transactionEventPublisher
+  EVENT_PUBLISHER_OPERATION
 } from '@invoice-hub/common';
 
 import { OrderRepository } from 'domain/repositories/order.repository';
@@ -90,20 +90,23 @@ export class OrderTransactionManager implements IOrderTransactionManager {
     LoggerTracerInfrastructure.log(`Updated order ${orderId} status to ${targetStatus} in transaction ${transactionId}`);
   }
 
-  @EventPublisherDecorator(transactionEventPublisher.TRANSACTION_USER_NOTIFICATION)
+  @EventPublisherDecorator(EVENT_PUBLISHER_OPERATION)
   private handleTransactionUserNotification (transactionId: string, order: Order, failureReason: string) {
     return {
-      transactionId,
-      userId: order.userId,
-      processType: ProcessType.ORDER_APPROVAL,
-      status: DistributedTransactionStatus.FAILED,
-      error: failureReason,
-      timestamp: new Date().toISOString(),
-      details: {
-        orderId: order.id,
-        totalAmount: order.totalAmount,
-        failureReason,
-        finalStatus: order.status
+      topicName: Subjects.TRANSACTION_USER_NOTIFICATION,
+      message: {
+        transactionId,
+        userId: order.userId,
+        processType: ProcessType.ORDER_APPROVAL,
+        status: DistributedTransactionStatus.FAILED,
+        error: failureReason,
+        timestamp: new Date().toISOString(),
+        details: {
+          orderId: order.id,
+          totalAmount: order.totalAmount,
+          failureReason,
+          finalStatus: order.status
+        }
       }
     };
   }

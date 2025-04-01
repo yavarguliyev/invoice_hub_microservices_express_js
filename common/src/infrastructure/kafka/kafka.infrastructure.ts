@@ -6,7 +6,12 @@ import { KafkaProducerInfrastructure } from '../kafka/kafka-producer.infrastruct
 import { getErrorMessage } from '../../application/helpers/utility-functions.helper';
 import { appConfig } from '../../core/configs/app.config';
 import {
-  KafkaRequestOptions, KafkaResponse, KafkaPublisherOptions, KafkaSubscriberOptions, KafkaHandleResponsedOptions, KafkaInitOptions
+  KafkaRequestOptions,
+  KafkaResponse,
+  KafkaPublisherOptions,
+  KafkaSubscriberOptions,
+  KafkaHandleResponsedOptions,
+  KafkaInitOptions
 } from '../../domain/interfaces/kafka-request-options.interface';
 import { GroupIds } from '../../domain/enums/events.enum';
 
@@ -80,9 +85,9 @@ export class KafkaInfrastructure {
     }
   }
 
-  async requestResponse (args: KafkaRequestOptions[]) {
+  async requestResponse<T extends unknown[]> (args: KafkaRequestOptions[]): Promise<T> {
     const promises = args.map(async (arg) => this.processRequest(arg));
-    return Promise.all(promises);
+    return Promise.all(promises) as Promise<T>;
   }
 
   async disconnect () {

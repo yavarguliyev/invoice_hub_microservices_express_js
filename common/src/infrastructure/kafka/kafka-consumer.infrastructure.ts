@@ -65,7 +65,7 @@ export class KafkaConsumerInfrastructure {
       this.isConsumerRunning = true;
 
       await this.consumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
+        eachMessage: async ({ topic, message }) => {
           try {
             if (!message.value) {
               return;

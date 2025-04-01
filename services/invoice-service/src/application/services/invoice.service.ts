@@ -9,13 +9,13 @@ import {
   RedisDecorator,
   ResponseResults,
   ResultMessage,
-  redisCacheConfig,
   queryResults,
   ContainerHelper,
   ContainerItems,
   KafkaInfrastructure,
   UserDto,
-  OrderDto
+  OrderDto,
+  REDIS_INVOICE_LIST
 } from '@invoice-hub/common';
 
 import { IInvoiceTransactionManager } from 'application/transactions/invoice-transaction.manager';
@@ -85,7 +85,7 @@ export class InvoiceService implements IInvoiceService {
     await this.transactionManager.initialize();
   }
 
-  @RedisDecorator(redisCacheConfig.INVOICE_LIST)
+  @RedisDecorator(REDIS_INVOICE_LIST)
   async get (query: GetQueryResultsArgs) {
     const { payloads, total } = await queryResults({ repository: this.invoiceRepository, query, dtoClass: InvoiceDto });
     return { payloads, total, result: ResultMessage.SUCCESS };
@@ -100,11 +100,7 @@ export class InvoiceService implements IInvoiceService {
     }
 
     const options = buildKafkaRequestOptionsHelper(invoiceDto);
-
-    const [orderResponse, userResponse] = await this.kafka.requestResponse(options);
-
-    const order = JSON.parse(orderResponse);
-    const user = JSON.parse(userResponse);
+    const [user, order] = await this.kafka.requestResponse<[UserDto, OrderDto]>(options);
 
     delete invoiceDto.orderId;
     delete invoiceDto.userId;

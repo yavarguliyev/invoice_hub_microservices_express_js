@@ -8,9 +8,6 @@ export enum Subjects {
   FETCH_INVOICE_REQUEST = 'fetch-invoice-request',
   FETCH_INVOICE_RESPONSE = 'fetch-invoice-response',
 
-  UPDATE_ORDER_STATUS = 'update_order_status',
-  INVOICE_GENERATE = 'invoice-generate',
-  
   TRANSACTION_STEP_COMPLETED = 'transaction_step_completed',
   TRANSACTION_STEP_FAILED = 'transaction_step_failed',
   TRANSACTION_COMPENSATION_START = 'transaction_compensation_start',

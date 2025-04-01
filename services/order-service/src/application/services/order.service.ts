@@ -7,7 +7,6 @@ import {
   OrderDto,
   OrderStatus,
   queryResults,
-  redisCacheConfig,
   RedisDecorator,
   ResponseResults,
   ResultMessage,
@@ -16,7 +15,10 @@ import {
   DataLoaderInfrastructure,
   ContainerKeys,
   ContainerHelper,
-  ContainerItems
+  ContainerItems,
+  REDIS_ORDER_LIST,
+  KafkaInfrastructure,
+  RedisCacheInvalidateDecorator
 } from '@invoice-hub/common';
 
 import { buildKafkaRequestOptionsHelper } from 'application/helpers/kafka-request.helper';
@@ -34,10 +36,19 @@ export interface IOrderService {
 
 export class OrderService implements IOrderService {
   // #region DI
+  private _kafka?: KafkaInfrastructure;
   private _orderRepository?: OrderRepository;
   private _orderDtoLoaderById?: DataLoader<string, OrderDto>;
   private _transactionManager?: IOrderTransactionManager;
   private _kafkaSubscriber?: IOrderKafkaSubscriber;
+
+  private get kafka () {
+    if (!this._kafka) {
+      this._kafka = Container.get(KafkaInfrastructure);
+    }
+
+    return this._kafka;
+  }
 
   private get orderRepository () {
     if (!this._orderRepository) {
@@ -78,7 +89,7 @@ export class OrderService implements IOrderService {
     await this.transactionManager.initialize();
   }
 
-  @RedisDecorator(redisCacheConfig.ORDER_LIST)
+  @RedisDecorator(REDIS_ORDER_LIST)
   async get (query: GetQueryResultsArgs): Promise<ResponseResults<OrderDto>> {
     const { payloads, total } = await queryResults({ repository: this.orderRepository, query, dtoClass: OrderDto });
 
@@ -93,13 +104,13 @@ export class OrderService implements IOrderService {
     }
 
     const options = buildKafkaRequestOptionsHelper(orderDto);
-    const [userResponse] = await this.kafkaSubscriber.requestUserData(options);
-    const user = JSON.parse(userResponse);
+    const [user] = await this.kafka.requestResponse<[UserDto]>(options);
     delete orderDto.userId;
 
     return { payload: { ...orderDto, user }, result: ResultMessage.SUCCESS };
   }
 
+  @RedisCacheInvalidateDecorator(REDIS_ORDER_LIST)
   async createOrder ({ id }: UserDto, args: CreateOrderArgs): Promise<ResponseResults<OrderDto>> {
     const order = this.orderRepository.create({ ...args, userId: id, status: OrderStatus.PENDING });
     const newOrder = await this.orderRepository.save(order);

@@ -10,10 +10,3 @@ export const REDIS_CACHE_KEYS = {
 export type RedisCacheKeys = { cacheKey: string, ttl: number };
 export type RedisCacheKey = typeof REDIS_CACHE_KEYS[keyof typeof REDIS_CACHE_KEYS];
 export type RedisDecoratorOption = { clientId: ClientIds, keyTemplate: RedisCacheKey; };
-
-export type RedisCacheConfig = {
-  ROLE_LIST: RedisDecoratorOption;
-  USER_LIST: RedisDecoratorOption;
-  INVOICE_LIST: RedisDecoratorOption;
-  ORDER_LIST: RedisDecoratorOption;
-};

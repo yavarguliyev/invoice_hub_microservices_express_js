@@ -38,12 +38,10 @@ export class LoggerTracerInfrastructure {
 
     const memberAssignment = entry.log?.memberAssignment;
     if (memberAssignment && Object.keys(memberAssignment).length > 0) {
-      const topics = Object.keys(memberAssignment);
-      const topicCount = topics.length;
       const groupId = entry.log.groupId;
       const logMessage = entry.log.message;
 
-      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}, Topics(${topicCount})`, levelMapping[level]);
+      LoggerTracerInfrastructure.log(`Message: ${logMessage} ${groupId}`, levelMapping[level]);
     }
   }
 }

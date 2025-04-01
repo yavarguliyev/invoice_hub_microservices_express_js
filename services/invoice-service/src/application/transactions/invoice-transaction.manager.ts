@@ -1,5 +1,5 @@
 import { Container } from 'typedi';
-import { TransactionCoordinatorInfrastructure, InvoiceStatus, GroupIds } from '@invoice-hub/common';
+import { TransactionCoordinatorInfrastructure, InvoiceStatus, GroupIds, RedisCacheInvalidateDecorator, REDIS_INVOICE_LIST } from '@invoice-hub/common';
 
 import { InvoiceRepository } from 'domain/repositories/invoice.repository';
 import { Invoice } from 'domain/entities/invoice.entity';
@@ -35,6 +35,7 @@ export class InvoiceTransactionManager implements IInvoiceTransactionManager {
     await this.transactionCoordinator.initialize(GroupIds.INVOICE_SERVICE_TRANSACTION_GROUP);
   }
 
+  @RedisCacheInvalidateDecorator(REDIS_INVOICE_LIST)
   async generateInvoiceInTransaction (orderId: string, userId: string, totalAmount: number): Promise<Invoice> {
     const invoiceData = {
       orderId,

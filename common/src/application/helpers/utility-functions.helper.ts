@@ -99,33 +99,6 @@ export const getErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : String(error);
 };
 
-export const prepareMessage = (result: unknown, args: unknown[], options?: {
-  isManualCancel?: boolean;
-  customFormatter?: (data: Record<string, unknown>) => Record<string, unknown>;
-}): unknown => {
-  if (options?.isManualCancel && args.length > 0) {
-    return { transactionId: `manual-cancel-${args[0]}`, orderId: args[0] };
-  }
-
-  if (options?.customFormatter && typeof result === 'object') {
-    return options.customFormatter(result as Record<string, unknown>);
-  }
-
-  const [firstArg] = args;
-  if (typeof firstArg === 'string') {
-    try {
-      const parsedArg = JSON.parse(firstArg);
-      if ('correlationId' in parsedArg) {
-        return { ...parsedArg, message: JSON.stringify(result) };
-      }
-    } catch (error) {
-      LoggerTracerInfrastructure.log(getErrorMessage(error));
-    }
-  }
-
-  return result;
-};
-
 export const toProcessType = (value: string): ProcessType => {
   if (Object.values(ProcessType).includes(value as ProcessType)) {
     return value as ProcessType;
