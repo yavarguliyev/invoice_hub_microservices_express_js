@@ -5,6 +5,7 @@
 	"main": "dist/index.js",
 	"author": "Yavar Guliyev",
 	"license": "MIT",
+	"packageManager": "yarn@1.22.22",
 	"scripts": {
 		"clean:migrations": "rimraf migrations/*.js",
 		"typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",

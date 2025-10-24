@@ -5,6 +5,7 @@
 	"main": "dist/index.js",
 	"author": "Yavar Guliyev",
 	"license": "MIT",
+	"packageManager": "yarn@1.22.22",
 	"scripts": {
 		"clean:dist": "rimraf dist/*",
 		"lint": "esw --watch --ext .ts src",
