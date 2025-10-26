@@ -20,39 +20,32 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: bitnami/zookeeper:3.8
+    image: confluentinc/cp-zookeeper:7.4.0
     ports:
-      - '2181:2181'
-    volumes:
-      - zookeeper-data:/bitnami
+      - "2181:2181"
     environment:
-      ALLOW_ANONYMOUS_LOGIN: 'yes'
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     networks:
       - common
 
   kafka:
     container_name: kafka
-    image: bitnami/kafka:3.6
-    volumes:
-      - kafka-data:/bitnami
+    image: confluentinc/cp-kafka:7.4.0
     environment:
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENERS: INTERNAL://:9092,EXTERNAL://0.0.0.0:29092
-      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      ALLOW_PLAINTEXT_LISTENER: 'yes'
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     ports:
       - '9092:9092'
       - '29092:29092'
     depends_on:
       - zookeeper
-    healthcheck:
-      test: ['CMD', 'kafka-topics.sh', '--list', '--bootstrap-server', 'kafka:9092']
-      interval: 10s
-      timeout: 10s
-      retries: 5
     networks:
       - common
   
@@ -72,7 +65,7 @@ services:
     
   auth-db:
     container_name: auth-db
-    image: postgres:13.5-alpine
+    image: postgres:18
     restart: always
     env_file:
       - ./.env
@@ -82,7 +75,7 @@ services:
       - DB_DEFAULT_HOST=auth-db
       - DB_DEFAULT_PORT=5432
     volumes:
-      - auth-postgres-data:/var/lib/postgresql/data
+      - auth-postgres_data:/var/lib/postgresql/18/auth
     ports:
       - '54321:5432'
     networks:
@@ -95,7 +88,7 @@ services:
 
   invoice-db:
     container_name: invoice-db
-    image: postgres:13.5-alpine
+    image: postgres:18
     restart: always
     env_file:
       - ./.env
@@ -105,7 +98,7 @@ services:
       - DB_DEFAULT_HOST=invoice-db
       - DB_DEFAULT_PORT=54322
     volumes:
-      - invoice-postgres-data:/var/lib/postgresql/data
+      - invoice-postgres_data:/var/lib/postgresql/18/invoice
     ports:
       - '54322:5432'
     networks:
@@ -118,7 +111,7 @@ services:
 
   order-db:
     container_name: order-db
-    image: postgres:13.5-alpine
+    image: postgres:18
     restart: always
     env_file:
       - ./.env
@@ -128,7 +121,7 @@ services:
       - DB_DEFAULT_HOST=order-db
       - DB_DEFAULT_PORT=54323
     volumes:
-      - order-postgres-data:/var/lib/postgresql/data
+      - order-postgres_data:/var/lib/postgresql/18/order
     ports:
       - '54323:5432'
     networks:
@@ -141,7 +134,7 @@ services:
 
   redis_auth:
     container_name: redis_auth_container
-    image: redis:7.0
+    image: redis
     ports:
       - '6381:6379'
     command: ['redis-server', '--requirepass', 'your_redis_password']
@@ -159,7 +152,7 @@ services:
 
   redis_invoice:
     container_name: redis_invoice_container
-    image: redis:7.0
+    image: redis
     ports:
       - '6382:6379'
     command: ['redis-server', '--requirepass', 'your_redis_password']
@@ -177,7 +170,7 @@ services:
 
   redis_order:
     container_name: redis_order_container
-    image: redis:7.0
+    image: redis
     ports:
       - '6383:6379'
     command: ['redis-server', '--requirepass', 'your_redis_password']
@@ -195,7 +188,7 @@ services:
 
   prometheus:
     container_name: prometheus
-    image: prom/prometheus:latest
+    image: prom/prometheus
     volumes:
       - prometheus-data:/prometheus
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -206,7 +199,7 @@ services:
 
   grafana:
     container_name: grafana
-    image: grafana/grafana:latest
+    image: grafana/grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: 'admin'
     ports:
@@ -379,9 +372,9 @@ networks:
 volumes:
   zookeeper-data:
   kafka-data:
-  auth-postgres-data:
-  invoice-postgres-data:
-  order-postgres-data:
+  auth-postgres_data:
+  invoice-postgres_data:
+  order-postgres_data:
   grafana-data:
   redis_auth_data:
   redis_invoice_data:

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ COPY ../../${SERVICE_NAME}/.eslintrc.json /app/${SERVICE_NAME}/
 COPY ../../${SERVICE_NAME}/nodemon.json /app/${SERVICE_NAME}/
 COPY ../../${SERVICE_NAME}/src /app/${SERVICE_NAME}/src/
 
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
@@ -68,4 +68,7 @@ ENV NODE_PORT=${NODE_PORT}
 
 EXPOSE ${NODE_PORT}
 
-CMD if [ "$NODE_ENV" = "production" ]; then yarn start:prod; else yarn start; fi
+COPY ../../entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+CMD ["sh", "/usr/local/bin/entrypoint.sh"]
